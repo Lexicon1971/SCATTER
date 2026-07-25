@@ -52,6 +52,10 @@ interface AppState {
   deleteReading: (id: string) => void;
   getReadingsByCourse: (courseId: string) => RequiredReading[];
 
+  // App Version (dynamic state)
+  appVersion: string;
+  setAppVersion: (version: string) => void;
+
   // Data Management
   clearAllData: () => void;
 }
@@ -302,6 +306,10 @@ const seedReadings: RequiredReading[] = [
 ];
 
 export const useAppStore = create<AppState>((set, get) => ({
+  // App Version
+  appVersion: '1.0.0', // Current default version
+  setAppVersion: (version) => set({ appVersion: version }),
+
   // Semesters
   semesters: seedSemesters,
   addSemester: (semester) => set((state) => ({ semesters: [...state.semesters, semester] })),
