@@ -1,8 +1,7 @@
-import * as Audio from 'expo-av';
-import { Audio as AudioModule } from 'expo-av';
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 
 export class AudioMuteService {
-  private static muteSchedules: Map<string, NodeJS.Timer> = new Map();
+  private static muteSchedules: Map<string, any> = new Map();
 
   static async initialize() {
     // Request audio permissions
@@ -71,25 +70,25 @@ export class AudioMuteService {
   private static async applyMute(muteType: 'silent' | 'vibrate') {
     try {
       if (muteType === 'silent') {
-        await AudioModule.setAudioModeAsync({
+        await Audio.setAudioModeAsync({
           allowsRecordingIOS: false,
-          interruptionModeIOS: Audio.InterruptionModeIOS.DoNotMix,
+          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
           playsInSilentModeIOS: false,
           staysActiveInBackground: false,
-          interruptionModeAndroid: Audio.InterruptionModeAndroid.DoNotMix,
+          interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
           shouldDuckAndroid: true,
-          playThroughEarpiece: false,
+          playThroughEarpieceAndroid: false,
         });
       } else if (muteType === 'vibrate') {
         // Vibrate mode - similar to silent but might play through earpiece
-        await AudioModule.setAudioModeAsync({
+        await Audio.setAudioModeAsync({
           allowsRecordingIOS: false,
-          interruptionModeIOS: Audio.InterruptionModeIOS.DoNotMix,
+          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
           playsInSilentModeIOS: false,
           staysActiveInBackground: false,
-          interruptionModeAndroid: Audio.InterruptionModeAndroid.DoNotMix,
+          interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
           shouldDuckAndroid: true,
-          playThroughEarpiece: false,
+          playThroughEarpieceAndroid: false,
         });
       }
     } catch (error) {
@@ -102,14 +101,14 @@ export class AudioMuteService {
    */
   private static async applyUnmute() {
     try {
-      await AudioModule.setAudioModeAsync({
+      await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
-        interruptionModeIOS: Audio.InterruptionModeIOS.Default,
+        interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
-        interruptionModeAndroid: Audio.InterruptionModeAndroid.Default,
+        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
         shouldDuckAndroid: false,
-        playThroughEarpiece: true,
+        playThroughEarpieceAndroid: true,
       });
     } catch (error) {
       console.error('Error applying unmute:', error);

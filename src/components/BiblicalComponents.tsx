@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
   },
   card_default: {
     borderWidth: 1,
-    borderColor: Colors.secondary,
-    opacity: 0.2,
+    borderColor: 'rgba(139, 111, 71, 0.3)',
+    backgroundColor: Colors.surface,
   },
   card_elevated: {
     shadowColor: Colors.primary,
