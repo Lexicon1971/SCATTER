@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useAppStore } from '../store';
+import { BiblicalHeader, BiblicalCard, BiblicalBadge } from '../components/BiblicalComponents';
+import { Colors, Spacing, BorderRadius } from '../styles/theme';
 
 type TaskFilter = 'all' | 'pending' | 'completed' | 'exams' | 'readings';
 
@@ -36,7 +38,6 @@ export default function TasksScreen() {
       filteredTasks.push(...readings);
     }
 
-    // Sort by due date
     filteredTasks.sort((a, b) => {
       const dateA = a.dueDate || a.scheduledDate;
       const dateB = b.dueDate || b.scheduledDate;
@@ -46,23 +47,36 @@ export default function TasksScreen() {
     setTasks(filteredTasks);
   }, [filter, store]);
 
+  const getStatusVariant = (status?: string): 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'in-progress':
+        return 'warning';
+      case 'exam':
+        return 'error';
+      case 'reading':
+        return 'info';
+      default:
+        return 'primary';
+    }
+  };
+
   const renderTask = ({ item }: any) => (
-    <TouchableOpacity style={styles.taskCard}>
+    <BiblicalCard variant="default" style={styles.taskCard}>
       <View style={styles.taskContent}>
         <Text style={styles.taskTitle}>{item.title}</Text>
         <Text style={styles.taskDate}>
-          Due: {(item.dueDate || item.scheduledDate)?.toLocaleDateString()}
+          {(item.dueDate || item.scheduledDate)?.toLocaleDateString()}
         </Text>
       </View>
-      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-        <Text style={styles.statusText}>{item.status || item.taskType}</Text>
-      </View>
-    </TouchableOpacity>
+      <BiblicalBadge label={item.status || item.taskType} variant={getStatusVariant(item.status)} />
+    </BiblicalCard>
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Tasks & Assignments</Text>
+    <SafeAreaView style={styles.container}>
+      <BiblicalHeader title="Assignments" subtitle="Tasks & Academic Pursuits" />
 
       <View style={styles.filterContainer}>
         {(['all', 'pending', 'completed', 'exams', 'readings'] as TaskFilter[]).map((f) => (
@@ -71,12 +85,7 @@ export default function TasksScreen() {
             style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
             onPress={() => setFilter(f)}
           >
-            <Text
-              style={[
-                styles.filterText,
-                filter === f && styles.filterTextActive,
-              ]}
-            >
+            <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </Text>
           </TouchableOpacity>
@@ -87,71 +96,60 @@ export default function TasksScreen() {
         data={tasks}
         renderItem={renderTask}
         keyExtractor={(item, index) => `${item.id}-${index}`}
-        ListEmptyComponent={<Text style={styles.emptyText}>No tasks found</Text>}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>✝</Text>
+            <Text style={styles.emptyText}>All tasks completed</Text>
+            <Text style={styles.emptySubtext}>Well done, faithful servant</Text>
+          </View>
+        }
+        scrollEnabled={false}
       />
-    </View>
+    </SafeAreaView>
   );
-}
-
-function getStatusColor(status?: string): string {
-  switch (status) {
-    case 'completed':
-      return '#4CAF50';
-    case 'in-progress':
-      return '#FF9800';
-    case 'pending':
-      return '#f44336';
-    default:
-      return '#2196F3';
-  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 16,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    backgroundColor: Colors.background,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
   },
   filterContainer: {
     flexDirection: 'row',
-    marginBottom: 16,
-    justifyContent: 'space-around',
+    marginBottom: Spacing.lg,
+    justifyContent: 'space-between',
     flexWrap: 'wrap',
   },
   filterBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    marginBottom: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: Colors.secondary,
+    marginBottom: Spacing.sm,
   },
   filterBtnActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   filterText: {
     fontSize: 12,
-    color: '#666',
+    color: Colors.textSecondary,
     fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   filterTextActive: {
-    color: '#fff',
+    color: Colors.light,
   },
   taskCard: {
-    backgroundColor: '#fff',
-    padding: 12,
-    marginBottom: 12,
-    borderRadius: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   taskContent: {
     flex: 1,
@@ -159,26 +157,32 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
   },
   taskDate: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
   },
-  statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
+  emptyIcon: {
+    fontSize: 40,
+    color: Colors.secondary,
+    marginBottom: Spacing.md,
   },
   emptyText: {
-    textAlign: 'center',
-    color: '#999',
-    marginTop: 32,
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
   },
 });

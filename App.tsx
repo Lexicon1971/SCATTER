@@ -8,6 +8,7 @@ import CalendarScreen from './src/screens/CalendarScreen';
 import TasksScreen from './src/screens/TasksScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { AudioMuteService } from './src/services/AudioMuteService';
+import { Colors } from './src/styles/theme';
 
 const Tab = createBottomTabNavigator();
 
@@ -43,9 +44,17 @@ export default function App() {
 
             return <Ionicons name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: '#007AFF',
-          tabBarInactiveTintColor: '#8E8E93',
-          headerShown: true,
+          tabBarActiveTintColor: Colors.secondary,
+          tabBarInactiveTintColor: Colors.textTertiary,
+          tabBarStyle: {
+            backgroundColor: Colors.surface,
+            borderTopColor: Colors.secondary,
+            borderTopWidth: 2,
+            paddingBottom: 8,
+            paddingTop: 8,
+          },
+          headerShown: false,
+          tabBarShowLabel: false,
         })}
       >
         <Tab.Screen name="Calendar" component={CalendarScreen} />

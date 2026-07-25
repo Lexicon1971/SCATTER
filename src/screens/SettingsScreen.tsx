@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, SafeAreaView } from 'react-native';
 import { useAppStore } from '../store';
+import { BiblicalHeader, BiblicalSection, BiblicalCard, BiblicalDivider } from '../components/BiblicalComponents';
+import { Colors, Spacing, BorderRadius } from '../styles/theme';
 
 export default function SettingsScreen() {
   const store = useAppStore();
@@ -9,154 +11,209 @@ export default function SettingsScreen() {
   const [reminderDays, setReminderDays] = useState(7);
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Settings</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <BiblicalHeader title="Settings" subtitle="Stewardship of Your Studies" />
 
-      {/* Semester Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Semester</Text>
-        <TouchableOpacity style={styles.option}>
-          <Text style={styles.optionLabel}>Current Semester</Text>
-          <Text style={styles.optionValue}>
-            {store.getCurrentSemester()?.name || 'None set'}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Add New Semester</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Semester Section */}
+        <BiblicalSection title="Academic Calendar">
+          <BiblicalCard variant="default">
+            <Text style={styles.optionLabel}>Current Semester</Text>
+            <Text style={styles.optionValue}>
+              {store.getCurrentSemester()?.name || 'None set'}
+            </Text>
+            <BiblicalDivider />
+            <TouchableOpacity style={styles.button}>
+              <Text style={styles.buttonText}>+ Add New Semester</Text>
+            </TouchableOpacity>
+          </BiblicalCard>
+        </BiblicalSection>
 
-      {/* Audio Mute Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Class Audio Settings</Text>
-        <View style={styles.option}>
-          <Text style={styles.optionLabel}>Auto-mute During Classes</Text>
-          <Switch value={audioMuteEnabled} onValueChange={setAudioMuteEnabled} />
-        </View>
-        <Text style={styles.description}>
-          Automatically mute audio during scheduled class times. Device will vibrate for messages.
-        </Text>
-      </View>
+        {/* Audio Mute Section */}
+        <BiblicalSection title="Class Sanctity">
+          <BiblicalCard variant="default">
+            <View style={styles.optionRow}>
+              <View style={styles.optionContent}>
+                <Text style={styles.optionLabel}>Auto-mute During Classes</Text>
+                <Text style={styles.optionDescription}>
+                  Device will vibrate for messages only
+                </Text>
+              </View>
+              <Switch value={audioMuteEnabled} onValueChange={setAudioMuteEnabled} />
+            </View>
+          </BiblicalCard>
+        </BiblicalSection>
 
-      {/* Notifications Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notifications</Text>
-        <View style={styles.option}>
-          <Text style={styles.optionLabel}>Reminder Notifications</Text>
-          <Switch value={reminderNotifications} onValueChange={setReminderNotifications} />
-        </View>
-        <View style={styles.option}>
-          <Text style={styles.optionLabel}>Remind me days before</Text>
-          <Text style={styles.optionValue}>{reminderDays} days</Text>
-        </View>
-      </View>
+        {/* Notifications Section */}
+        <BiblicalSection title="Reminders & Alerts">
+          <BiblicalCard variant="default">
+            <View style={styles.optionRow}>
+              <View style={styles.optionContent}>
+                <Text style={styles.optionLabel}>Enable Notifications</Text>
+                <Text style={styles.optionDescription}>
+                  Receive reminders for assignments and exams
+                </Text>
+              </View>
+              <Switch value={reminderNotifications} onValueChange={setReminderNotifications} />
+            </View>
+            <BiblicalDivider />
+            <View style={styles.optionRow}>
+              <Text style={styles.optionLabel}>Remind me before</Text>
+              <Text style={styles.optionValue}>{reminderDays} days</Text>
+            </View>
+          </BiblicalCard>
+        </BiblicalSection>
 
-      {/* Courses Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Courses ({store.courses.length})</Text>
-        {store.courses.slice(0, 3).map((course) => (
-          <View key={course.id} style={styles.listItem}>
-            <Text style={styles.courseName}>{course.name}</Text>
-            <Text style={styles.instructor}>{course.instructor}</Text>
-          </View>
-        ))}
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Manage Courses</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Courses Section */}
+        <BiblicalSection title="Course Registry">
+          <BiblicalCard variant="default">
+            <Text style={styles.courseCount}>
+              {store.courses.length} {store.courses.length === 1 ? 'Course' : 'Courses'} Enrolled
+            </Text>
+            {store.courses.slice(0, 3).map((course) => (
+              <View key={course.id} style={styles.courseItem}>
+                <Text style={styles.courseName}>{course.name}</Text>
+                <Text style={styles.courseInstructor}>{course.instructor}</Text>
+              </View>
+            ))}
+            <BiblicalDivider />
+            <TouchableOpacity style={styles.button}>
+              <Text style={styles.buttonText}>⚙ Manage Courses</Text>
+            </TouchableOpacity>
+          </BiblicalCard>
+        </BiblicalSection>
 
-      {/* Danger Zone */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Data</Text>
-        <TouchableOpacity style={[styles.button, styles.dangerButton]}>
-          <Text style={styles.dangerButtonText}>Clear All Data</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        {/* Spiritual Disciplines */}
+        <BiblicalSection title="Spiritual Disciplines">
+          <BiblicalCard variant="default">
+            <TouchableOpacity style={styles.button}>
+              <Text style={styles.buttonText}>⛪ Schedule Devotional Times</Text>
+            </TouchableOpacity>
+            <BiblicalDivider />
+            <TouchableOpacity style={styles.button}>
+              <Text style={styles.buttonText}>📖 Required Reading Tracker</Text>
+            </TouchableOpacity>
+          </BiblicalCard>
+        </BiblicalSection>
+
+        {/* About Section */}
+        <BiblicalSection title="About SCATTER">
+          <BiblicalCard variant="outlined">
+            <Text style={styles.aboutText}>
+              "Therefore, as God's chosen people, holy and dearly loved, clothe yourselves with compassion, kindness,
+              humility, gentleness and patience." - Colossians 3:12
+            </Text>
+            <Text style={styles.aboutSubtext}>
+              SCATTER: Schedule, Commit, Track, Course, Activities, Time, Education, Records
+            </Text>
+          </BiblicalCard>
+        </BiblicalSection>
+
+        {/* Danger Zone */}
+        <BiblicalSection title="Data Management">
+          <TouchableOpacity style={[styles.button, styles.dangerButton]}>
+            <Text style={styles.dangerButtonText}>🗑 Clear All Data</Text>
+          </TouchableOpacity>
+        </BiblicalSection>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    backgroundColor: Colors.background,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
   },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 24,
-  },
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#333',
-  },
-  option: {
+  optionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingVertical: Spacing.md,
+  },
+  optionContent: {
+    flex: 1,
+    marginRight: Spacing.lg,
   },
   optionLabel: {
-    fontSize: 16,
-    color: '#333',
-    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  optionDescription: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
   },
   optionValue: {
     fontSize: 14,
-    color: '#666',
     fontWeight: '600',
-  },
-  description: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 12,
-    fontStyle: 'italic',
+    color: Colors.secondary,
   },
   button: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: Spacing.md,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: Colors.light,
+    fontSize: 14,
     fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   dangerButton: {
-    backgroundColor: '#f44336',
+    backgroundColor: Colors.error,
   },
   dangerButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: Colors.light,
+    fontSize: 14,
     fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  listItem: {
-    paddingVertical: 12,
+  courseCount: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    marginBottom: Spacing.md,
+  },
+  courseItem: {
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: Colors.secondary,
   },
   courseName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  instructor: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    fontWeight: '600',
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+  },
+  courseInstructor: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  aboutText: {
+    fontSize: 13,
+    color: Colors.primary,
+    fontStyle: 'italic',
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  aboutSubtext: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
