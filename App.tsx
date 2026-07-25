@@ -32,7 +32,7 @@ export default function App() {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIcon: ({ focused, color, size }) => {
-            let iconName;
+            let iconName: any;
 
             if (route.name === 'Calendar') {
               iconName = focused ? 'calendar' : 'calendar-outline';

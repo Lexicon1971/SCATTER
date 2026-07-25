@@ -1,0 +1,25 @@
+Starting project at /app
+(node:169281) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Starting Metro Bundler
+
+TypeScript: The tsconfig.json has been updated (Use EXPO_NO_TYPESCRIPT_SETUP to skip)
+
+› Required modifications made to the tsconfig.json:
+
+  extends is now expo/tsconfig.base
+
+
+The following packages should be updated for best compatibility with the installed expo version:
+  expo-calendar@13.0.5 - expected version: ~12.2.1
+  react-native@0.73.0 - expected version: 0.73.6
+  react-native-safe-area-context@4.7.2 - expected version: 4.8.2
+  react-native-screens@3.27.0 - expected version: ~3.29.0
+  @types/react@18.3.31 - expected version: ~18.2.45
+Your project may not work correctly until you install the correct versions of the packages.
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+transform[stderr]: (node:173195) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+transform[stderr]: (Use `node --trace-deprecation ...` to show where the warning was created)
+Web Bundled 12732ms (node_modules/expo/AppEntry.js)
+Web Bundled 44ms (node_modules/expo/AppEntry.js)
