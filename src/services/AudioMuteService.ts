@@ -1,9 +1,11 @@
+import { Platform } from 'react-native';
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 
 export class AudioMuteService {
   private static muteSchedules: Map<string, any> = new Map();
 
   static async initialize() {
+    if (Platform.OS === 'web') return;
     // Request audio permissions
     try {
       await Audio.requestPermissionsAsync();
@@ -25,6 +27,7 @@ export class AudioMuteService {
     endTime: string,
     muteType: 'silent' | 'vibrate' = 'vibrate'
   ) {
+    if (Platform.OS === 'web') return;
     const now = new Date();
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
@@ -119,6 +122,7 @@ export class AudioMuteService {
    * Cancel a scheduled mute
    */
   static cancelMute(classSessionId: string) {
+    if (Platform.OS === 'web') return;
     if (this.muteSchedules.has(classSessionId)) {
       clearTimeout(this.muteSchedules.get(classSessionId));
       this.muteSchedules.delete(classSessionId);

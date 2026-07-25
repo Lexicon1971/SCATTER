@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,18 +14,22 @@ import { Colors } from './src/styles/theme';
 const Tab = createBottomTabNavigator();
 
 // Configure notifications
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 export default function App() {
   React.useEffect(() => {
     // Initialize audio mute service
-    AudioMuteService.initialize();
+    if (Platform.OS !== 'web') {
+      AudioMuteService.initialize();
+    }
   }, []);
 
   return (
