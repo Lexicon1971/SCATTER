@@ -21,6 +21,7 @@ export default function SettingsScreen() {
 
   // Settings states
   const [audioMuteEnabled, setAudioMuteEnabled] = useState(true);
+  const [customVersion, setCustomVersion] = useState(store.appVersion);
   const [reminderNotifications, setReminderNotifications] = useState(true);
   const [reminderDays, setReminderDays] = useState(7);
 
@@ -314,6 +315,40 @@ export default function SettingsScreen() {
           </BiblicalCard>
         </BiblicalSection>
 
+        {/* Version Configuration Section */}
+        <BiblicalSection title="App Version Config">
+          <BiblicalCard variant="default">
+            <View style={styles.optionRow}>
+              <View style={styles.optionContent}>
+                <Text style={styles.optionLabel}>Current Store Version</Text>
+                <Text style={styles.versionValueText}>{store.appVersion}</Text>
+              </View>
+            </View>
+            <BiblicalDivider />
+            <View style={styles.formField}>
+              <Text style={styles.fieldLabel}>Change/Update Version to Test</Text>
+              <View style={styles.versionInputRow}>
+                <TextInput
+                  style={[styles.formInput, { flex: 1, marginRight: Spacing.md }]}
+                  value={customVersion}
+                  onChangeText={setCustomVersion}
+                  placeholder="e.g. 1.2.0"
+                  placeholderTextColor={Colors.textTertiary}
+                />
+                <TouchableOpacity
+                  onPress={() => {
+                    store.setAppVersion(customVersion);
+                    Alert.alert("Version Updated", `Store version is now set to ${customVersion}`);
+                  }}
+                  style={styles.versionApplyBtn}
+                >
+                  <Text style={styles.versionApplyBtnText}>Apply</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </BiblicalCard>
+        </BiblicalSection>
+
         {/* About Section */}
         <BiblicalSection title="About SCATTER">
           <BiblicalCard variant="outlined">
@@ -323,6 +358,9 @@ export default function SettingsScreen() {
             </Text>
             <Text style={styles.aboutSubtext}>
               SCATTER: Schedule, Commit, Track, Course, Activities, Time, Education, Records
+            </Text>
+            <Text style={styles.aboutVersionText}>
+              Version: {store.appVersion}
             </Text>
           </BiblicalCard>
         </BiblicalSection>
@@ -710,6 +748,36 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  aboutVersionText: {
+    fontSize: 11,
+    color: Colors.secondary,
+    textAlign: 'center',
+    fontWeight: '700',
+    marginTop: Spacing.sm,
+    fontFamily: 'Georgia',
+  },
+  versionValueText: {
+    fontSize: 14,
+    color: Colors.secondary,
+    fontWeight: '700',
+  },
+  versionInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  versionApplyBtn: {
+    backgroundColor: Colors.secondary,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+  },
+  versionApplyBtnText: {
+    color: Colors.light,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   emptyNote: {
     fontSize: 11,
