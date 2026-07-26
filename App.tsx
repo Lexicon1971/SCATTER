@@ -31,9 +31,13 @@ export default function App() {
       AudioMuteService.initialize();
     } else {
       // Set document title and book icon on web platform
-      document.title = "SCATTER - Seminary Tracker v1.4";
+      document.title = "SCATTER - Seminary Tracker v1.5";
 
-      const link = (document.querySelector("link[rel*='icon']") as HTMLLinkElement) || document.createElement('link');
+      // Remove any existing favicon links to prevent duplicate icon requests/errors
+      const existingIcons = document.querySelectorAll("link[rel*='icon']");
+      existingIcons.forEach(icon => icon.parentNode?.removeChild(icon));
+
+      const link = document.createElement('link');
       link.type = 'image/svg+xml';
       link.rel = 'shortcut icon';
       link.href = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%238B6F47"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm16 0h-7V6h7v12z"/><path d="M6 9h3v2H6zm8 0h3v2H14zm-8 4h3v2H6zm8 0h3v2H14z"/></svg>';
