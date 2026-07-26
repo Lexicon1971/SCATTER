@@ -31,20 +31,13 @@ export default function App() {
       AudioMuteService.initialize();
     } else {
       // Set document title and book icon on web platform
-      document.title = "SCATTER - Seminary Tracker v1.3";
+      document.title = "SCATTER - Seminary Tracker v1.4";
 
       const link = (document.querySelector("link[rel*='icon']") as HTMLLinkElement) || document.createElement('link');
       link.type = 'image/svg+xml';
       link.rel = 'shortcut icon';
       link.href = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%238B6F47"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm16 0h-7V6h7v12z"/><path d="M6 9h3v2H6zm8 0h3v2H14zm-8 4h3v2H6zm8 0h3v2H14z"/></svg>';
       document.getElementsByTagName('head')[0].appendChild(link);
-
-      // Deliver the console error messages as requested for host validation checks
-      console.log("READ - Host validation failed: {hostName: '', hostType: undefined}");
-      console.log("content.js:2524 Host is not supported");
-      console.log("content.js:2526 Host is not valid or supported");
-      console.log("content.js:2526 Host is not in insights whitelist");
-      console.error("SCATTER/:1 Uncaught (in promise) {name: 'n', httpError: false, httpStatus: 200, httpStatusText: '', code: 403, …}");
     }
   }, []);
 
