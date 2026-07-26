@@ -307,7 +307,7 @@ const seedReadings: RequiredReading[] = [
 
 export const useAppStore = create<AppState>((set, get) => ({
   // App Version
-  appVersion: 'v1.2', // Current default version
+  appVersion: 'v1.3', // Current default version
   setAppVersion: (version) => set({ appVersion: version }),
 
   // Semesters
