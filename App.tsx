@@ -31,7 +31,7 @@ export default function App() {
       AudioMuteService.initialize();
     } else {
       // Set document title and book icon on web platform
-      document.title = "SCATTER - Seminary Tracker v1.2";
+      document.title = "SCATTER - Seminary Tracker v1.3";
 
       const link = (document.querySelector("link[rel*='icon']") as HTMLLinkElement) || document.createElement('link');
       link.type = 'image/svg+xml';
