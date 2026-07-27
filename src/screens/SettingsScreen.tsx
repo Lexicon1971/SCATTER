@@ -56,6 +56,10 @@ export default function SettingsScreen() {
   const [devEnd, setDevEnd] = useState('07:30');
   const [devNotes, setDevNotes] = useState('');
 
+  // Robust Custom Confirm Modal
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any>(null);
+
   const availableColors = [
     '#2C3E50', // Deep Navy
     '#8B6F47', // Warm Bronze
@@ -127,6 +131,7 @@ export default function SettingsScreen() {
       endTime: devEnd,
       title: devTitle,
       notes: devNotes,
+      type: 'adhoc',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -153,15 +158,79 @@ export default function SettingsScreen() {
     );
   };
 
-  const getDayNameString = (dayNum: number) => {
+  const requestDeleteItem = (id: string, type: string, extraLabel: string) => {
+    setItemToDelete({ id, type, extraLabel });
+    setDeleteConfirmVisible(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!itemToDelete) return;
+    const { id, type } = itemToDelete;
+    if (type === 'semester') {
+      store.deleteSemester(id);
+    } else if (type === 'course') {
+      store.deleteCourse(id);
+    } else if (type === 'classSession') {
+      store.deleteClassSession(id);
+    } else if (type === 'devotion') {
+      store.deleteDevotionalTime(id);
+    }
+    setDeleteConfirmVisible(false);
+    setItemToDelete(null);
+  };
+
+  const getDayNameString = (dayNum?: number) => {
+    if (dayNum === undefined) return 'Monday';
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[dayNum] || 'Monday';
+  };
+
+  const getCourseName = (id?: string) => {
+    if (!id) return 'Unknown';
+    const course = store.courses.find((c) => c.id === id);
+    return course ? course.name : 'Unknown';
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <BiblicalHeader title="Settings" subtitle="Stewardship & Academy Configuration" />
+
+        {/* User Identity / Authentication info & Sign Out */}
+        {store.user && (
+          <BiblicalSection title="Instance Security">
+            <BiblicalCard variant="outlined" style={styles.authInfoCard}>
+              <View style={styles.authInfoRow}>
+                <View>
+                  <Text style={styles.authWelcome}>Grace be with you,</Text>
+                  <Text style={styles.authUserName}>{store.user.name}</Text>
+                  <Text style={styles.authUserEmail}>{store.user.email}</Text>
+                </View>
+                <TouchableOpacity onPress={() => store.signOutUser()} style={styles.signOutBtn}>
+                  <Ionicons name="log-out-outline" size={16} color={Colors.light} style={{ marginRight: 4 }} />
+                  <Text style={styles.signOutBtnText}>Sign Out</Text>
+                </TouchableOpacity>
+              </View>
+            </BiblicalCard>
+          </BiblicalSection>
+        )}
+
+        {/* Setup Wizard Trigger */}
+        <BiblicalSection title="Semester Management">
+          <BiblicalCard variant="outlined" style={styles.setupWizardCard}>
+            <Text style={styles.setupTitle}>Setup New Semester</Text>
+            <Text style={styles.setupDescription}>
+              Initialize scheduling with detailed spiritual liturgies, breaks, class requirements, and modules.
+            </Text>
+            <TouchableOpacity
+              onPress={() => store.setSetupWizardActive(true)}
+              style={styles.wizardBtn}
+            >
+              <Ionicons name="sparkles" size={16} color={Colors.light} style={{ marginRight: 6 }} />
+              <Text style={styles.wizardBtnText}>Start New Semester Setup</Text>
+            </TouchableOpacity>
+          </BiblicalCard>
+        </BiblicalSection>
 
         {/* Semester Section */}
         <BiblicalSection title="Academic Semesters">
@@ -175,7 +244,7 @@ export default function SettingsScreen() {
                     {new Date(sem.startDate).toLocaleDateString()} to {new Date(sem.endDate).toLocaleDateString()}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => store.deleteSemester(sem.id)}>
+                <TouchableOpacity onPress={() => requestDeleteItem(sem.id, 'semester', sem.name)}>
                   <Ionicons name="trash-outline" size={16} color={Colors.error} />
                 </TouchableOpacity>
               </View>
@@ -248,7 +317,7 @@ export default function SettingsScreen() {
                     <Text style={styles.courseInstructor}>{course.instructor} | {course.credits} Credits</Text>
                   </View>
                 </View>
-                <TouchableOpacity onPress={() => store.deleteCourse(course.id)}>
+                <TouchableOpacity onPress={() => requestDeleteItem(course.id, 'course', course.name)}>
                   <Ionicons name="trash-outline" size={16} color={Colors.error} />
                 </TouchableOpacity>
               </View>
@@ -276,7 +345,7 @@ export default function SettingsScreen() {
                       {getDayNameString(session.dayOfWeek)} | {session.startTime} - {session.endTime} {session.location ? `(${session.location})` : ''}
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={() => store.deleteClassSession(session.id)}>
+                  <TouchableOpacity onPress={() => requestDeleteItem(session.id, 'classSession', crs?.name || 'Class')}>
                     <Ionicons name="trash-outline" size={16} color={Colors.error} />
                   </TouchableOpacity>
                 </View>
@@ -303,7 +372,7 @@ export default function SettingsScreen() {
                     {getDayNameString(dev.dayOfWeek)} at {dev.startTime} - {dev.endTime}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => store.deleteDevotionalTime(dev.id)}>
+                <TouchableOpacity onPress={() => requestDeleteItem(dev.id, 'devotion', dev.title)}>
                   <Ionicons name="trash-outline" size={16} color={Colors.error} />
                 </TouchableOpacity>
               </View>
@@ -576,6 +645,43 @@ export default function SettingsScreen() {
           </SafeAreaView>
         </View>
       </Modal>
+
+      {/* Robust Custom Delete Confirm Modal */}
+      <Modal visible={deleteConfirmVisible} animationType="fade" transparent>
+        <View style={styles.deleteModalOverlay}>
+          <BiblicalCard variant="outlined" style={styles.deleteModalContent}>
+            <Text style={styles.deleteModalTitle}>Confirm Deletion</Text>
+            <BiblicalDivider />
+            <Text style={styles.deleteModalText}>
+              Are you sure you want to completely delete this item?
+            </Text>
+            <View style={styles.connectionDetailsBox}>
+              <Text style={styles.connectionTitle}>Connected functions & courses:</Text>
+              <Text style={styles.connectionDetails}>
+                - Target element name: {itemToDelete?.extraLabel}
+              </Text>
+              <Text style={styles.connectionDetails}>
+                - Connected role: Settings Config ({itemToDelete?.type})
+              </Text>
+            </View>
+
+            <View style={styles.deleteActionRow}>
+              <TouchableOpacity
+                onPress={() => setDeleteConfirmVisible(false)}
+                style={[styles.deleteModalBtn, styles.deleteBtnCancel]}
+              >
+                <Text style={styles.deleteBtnTextCancel}>Don't Delete</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirmDelete}
+                style={[styles.deleteModalBtn, styles.deleteBtnConfirm]}
+              >
+                <Text style={styles.deleteBtnTextConfirm}>Complete Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </BiblicalCard>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -589,6 +695,79 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: Spacing.xxl,
+  },
+  authInfoCard: {
+    padding: Spacing.md,
+    borderColor: Colors.secondary,
+    backgroundColor: '#FAF7F2',
+  },
+  authInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  authWelcome: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: Colors.textSecondary,
+  },
+  authUserName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.primary,
+    fontFamily: 'Georgia',
+  },
+  authUserEmail: {
+    fontSize: 12,
+    color: Colors.textTertiary,
+  },
+  signOutBtn: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: BorderRadius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  signOutBtnText: {
+    color: Colors.light,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  setupWizardCard: {
+    padding: Spacing.md,
+    borderColor: Colors.secondary,
+    backgroundColor: '#FAF7F2',
+  },
+  setupTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primary,
+    fontFamily: 'Georgia',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  setupDescription: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: Spacing.md,
+    lineHeight: 16,
+  },
+  wizardBtn: {
+    backgroundColor: Colors.secondary,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  wizardBtnText: {
+    color: Colors.light,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   optionRow: {
     flexDirection: 'row',
@@ -925,5 +1104,83 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(42, 42, 42, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  deleteModalContent: {
+    backgroundColor: Colors.background,
+    width: '100%',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderColor: Colors.secondary,
+    borderWidth: 2,
+  },
+  deleteModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.primary,
+    fontFamily: 'Georgia',
+    textTransform: 'uppercase',
+  },
+  deleteModalText: {
+    fontSize: 13,
+    color: Colors.primary,
+    marginVertical: Spacing.md,
+    fontStyle: 'italic',
+  },
+  connectionDetailsBox: {
+    backgroundColor: 'rgba(139, 111, 71, 0.05)',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderColor: 'rgba(139, 111, 71, 0.15)',
+    borderWidth: 1,
+    marginBottom: Spacing.lg,
+  },
+  connectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.secondary,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  connectionDetails: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    lineHeight: 16,
+  },
+  deleteActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  deleteModalBtn: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginLeft: Spacing.md,
+  },
+  deleteBtnCancel: {
+    backgroundColor: Colors.surface,
+    borderColor: 'rgba(139, 111, 71, 0.3)',
+    borderWidth: 1,
+  },
+  deleteBtnConfirm: {
+    backgroundColor: Colors.error,
+  },
+  deleteBtnTextCancel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  deleteBtnTextConfirm: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light,
+    textTransform: 'uppercase',
   },
 });

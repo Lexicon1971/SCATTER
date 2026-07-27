@@ -68,7 +68,7 @@ const DAILY_QUOTES: { [key: number]: Quote } = {
   }
 };
 
-type FormType = 'assignment' | 'exam' | 'class' | 'devotion';
+type FormType = 'assignment' | 'exam' | 'class' | 'devotion' | 'reading';
 
 export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -77,6 +77,7 @@ export default function CalendarScreen() {
   const [formType, setFormType] = useState<FormType>('assignment');
 
   // Generic Form States
+  const [eventId, setEventId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [courseId, setCourseId] = useState('');
@@ -85,6 +86,14 @@ export default function CalendarScreen() {
   const [location, setLocation] = useState('');
   const [extraType, setExtraType] = useState(''); // e.g. homework, mid-term, etc.
   const [reminderDays, setReminderDays] = useState('7');
+
+  // Reading States
+  const [author, setAuthor] = useState('');
+  const [pages, setPages] = useState('100');
+
+  // Custom Delete Confirm Modal State
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<any>(null);
 
   const store = useAppStore();
 
@@ -108,27 +117,23 @@ export default function CalendarScreen() {
     const dayClasses = store.classSessions.filter((c) => c.dayOfWeek === dayOfWeek);
     dayEvents.push(...dayClasses.map((c) => ({ ...c, type: 'class' })));
 
-    // Devotional times scheduled for this day of week
-    const dayDevotions = store.devotionalTimes.filter((d) => d.dayOfWeek === dayOfWeek);
+    // Devotional times scheduled for this day of week or specific adhoc date
+    const dayDevotions = store.devotionalTimes.filter((d) => {
+      if (d.date) {
+        return new Date(d.date).toDateString() === selectedDate.toDateString();
+      }
+      return d.dayOfWeek === dayOfWeek;
+    });
     dayEvents.push(...dayDevotions.map((d) => ({ ...d, type: 'devotion' })));
 
-    setEvents(dayEvents);
-  }, [selectedDate, store.assignments, store.exams, store.classSessions, store.devotionalTimes]);
+    // Required readings due on this date
+    const dayReadings = store.readings.filter(
+      (r) => new Date(r.dueDate).toDateString() === selectedDate.toDateString()
+    );
+    dayEvents.push(...dayReadings.map((r) => ({ ...r, type: 'reading' })));
 
-  const getEventColor = (type: string) => {
-    switch (type) {
-      case 'assignment':
-        return Colors.warning;
-      case 'exam':
-        return Colors.error;
-      case 'class':
-        return Colors.info;
-      case 'devotion':
-        return Colors.success;
-      default:
-        return Colors.secondary;
-    }
-  };
+    setEvents(dayEvents);
+  }, [selectedDate, store.assignments, store.exams, store.classSessions, store.devotionalTimes, store.readings]);
 
   const getWeekDays = (date: Date) => {
     const start = new Date(date);
@@ -157,7 +162,8 @@ export default function CalendarScreen() {
     setSelectedDate(nextDate);
   };
 
-  const getCourseName = (id: string) => {
+  const getCourseName = (id?: string) => {
+    if (!id) return 'Not Connected';
     const course = store.courses.find((c) => c.id === id);
     return course ? course.name : 'Unknown Course';
   };
@@ -165,64 +171,137 @@ export default function CalendarScreen() {
   const handleCreateEvent = () => {
     if (!title && formType !== 'class') return;
 
-    const id = `user-${Date.now()}`;
-    const targetCourse = courseId || (store.courses[0] ? store.courses[0].id : '');
+    const targetCourse = courseId || (store.courses[0] ? store.courses[0].id : undefined);
 
-    if (formType === 'assignment') {
-      store.addAssignment({
-        id,
-        courseId: targetCourse,
-        title,
-        description,
-        dueDate: selectedDate,
-        dueTime: startTime,
-        type: (extraType || 'homework') as any,
-        status: 'pending',
-        reminderDays: parseInt(reminderDays) || 7,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    } else if (formType === 'exam') {
-      store.addExam({
-        id,
-        courseId: targetCourse,
-        title,
-        description,
-        scheduledDate: selectedDate,
-        startTime,
-        endTime,
-        location,
-        examType: (extraType || 'test') as any,
-        reminderDays: parseInt(reminderDays) || 7,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    } else if (formType === 'class') {
-      store.addClassSession({
-        id,
-        courseId: targetCourse,
-        dayOfWeek: selectedDate.getDay(),
-        startTime,
-        endTime,
-        location,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    } else if (formType === 'devotion') {
-      store.addDevotionalTime({
-        id,
-        semesterId: store.semesters[0] ? store.semesters[0].id : 'semester-1',
-        dayOfWeek: selectedDate.getDay(),
-        startTime,
-        endTime,
-        title,
-        notes: description,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+    if (eventId) {
+      // AMEND (Edit Mode)
+      if (formType === 'assignment') {
+        store.updateAssignment(eventId, {
+          courseId: targetCourse,
+          title,
+          description,
+          dueTime: startTime,
+          type: (extraType || 'homework') as any,
+          reminderDays: parseInt(reminderDays) || 7,
+          updatedAt: new Date(),
+        });
+      } else if (formType === 'exam') {
+        store.updateExam(eventId, {
+          courseId: targetCourse,
+          title,
+          description,
+          startTime,
+          endTime,
+          location,
+          examType: (extraType || 'test') as any,
+          reminderDays: parseInt(reminderDays) || 7,
+          updatedAt: new Date(),
+        });
+      } else if (formType === 'class') {
+        if (targetCourse) {
+          store.updateClassSession(eventId, {
+            courseId: targetCourse,
+            startTime,
+            endTime,
+            location,
+            updatedAt: new Date(),
+          });
+        }
+      } else if (formType === 'devotion') {
+        store.updateDevotionalTime(eventId, {
+          startTime,
+          endTime,
+          title,
+          notes: description,
+          updatedAt: new Date(),
+        });
+      } else if (formType === 'reading') {
+        store.updateReading(eventId, {
+          courseId: targetCourse,
+          title,
+          author,
+          pages: parseInt(pages) || 100,
+          updatedAt: new Date(),
+        });
+      }
+    } else {
+      // CREATE Mode
+      const id = `user-${Date.now()}`;
+      if (formType === 'assignment') {
+        store.addAssignment({
+          id,
+          courseId: targetCourse,
+          title,
+          description,
+          dueDate: selectedDate,
+          dueTime: startTime,
+          type: (extraType || 'homework') as any,
+          status: 'pending',
+          reminderDays: parseInt(reminderDays) || 7,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      } else if (formType === 'exam') {
+        store.addExam({
+          id,
+          courseId: targetCourse,
+          title,
+          description,
+          scheduledDate: selectedDate,
+          startTime,
+          endTime,
+          location,
+          examType: (extraType || 'test') as any,
+          scopeOfContent: 'General syllabus topics',
+          reminderDays: parseInt(reminderDays) || 7,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      } else if (formType === 'class') {
+        if (targetCourse) {
+          store.addClassSession({
+            id,
+            courseId: targetCourse,
+            dayOfWeek: selectedDate.getDay(),
+            startTime,
+            endTime,
+            location,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        }
+      } else if (formType === 'devotion') {
+        store.addDevotionalTime({
+          id,
+          semesterId: store.semesters[0] ? store.semesters[0].id : 'semester-1',
+          dayOfWeek: selectedDate.getDay(),
+          startTime,
+          endTime,
+          title,
+          notes: description,
+          type: 'adhoc',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      } else if (formType === 'reading') {
+        store.addReading({
+          id,
+          courseId: targetCourse,
+          title,
+          author,
+          dueDate: selectedDate,
+          status: 'not-started',
+          pages: parseInt(pages) || 100,
+          progress: 0,
+          reminderDays: 3,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
     }
 
     // Reset Form
+    setEventId(null);
     setTitle('');
     setDescription('');
     setLocation('');
@@ -230,10 +309,35 @@ export default function CalendarScreen() {
     setStartTime('09:00');
     setEndTime('10:00');
     setReminderDays('7');
+    setAuthor('');
+    setPages('100');
     setModalVisible(false);
   };
 
-  const handleDeleteEvent = (item: any) => {
+  const handleEditEvent = (item: any) => {
+    setEventId(item.id);
+    setFormType(item.type);
+    setTitle(item.title || '');
+    setDescription(item.description || item.notes || '');
+    setCourseId(item.courseId || '');
+    setStartTime(item.startTime || item.dueTime || '09:00');
+    setEndTime(item.endTime || '10:00');
+    setLocation(item.location || '');
+    setExtraType(item.examType || item.type || '');
+    setReminderDays(String(item.reminderDays || '7'));
+    setAuthor(item.author || '');
+    setPages(String(item.pages || '100'));
+    setModalVisible(true);
+  };
+
+  const requestDeleteEvent = (item: any) => {
+    setEventToDelete(item);
+    setDeleteConfirmVisible(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!eventToDelete) return;
+    const item = eventToDelete;
     if (item.type === 'assignment') {
       store.deleteAssignment(item.id);
     } else if (item.type === 'exam') {
@@ -242,14 +346,18 @@ export default function CalendarScreen() {
       store.deleteClassSession(item.id);
     } else if (item.type === 'devotion') {
       store.deleteDevotionalTime(item.id);
+    } else if (item.type === 'reading') {
+      store.deleteReading(item.id);
     }
+    setDeleteConfirmVisible(false);
+    setEventToDelete(null);
   };
 
   const quote = DAILY_QUOTES[selectedDate.getDay()];
 
   return (
     <SafeAreaView style={styles.container}>
-      <BiblicalHeader title="Sacred Calendar" subtitle="Daily Devotions & Studies" />
+      <BiblicalHeader title="Calendar" subtitle="Daily Devotions & Studies" />
 
       {/* Reformed Theological Quote of the Day */}
       <BiblicalCard variant="outlined" style={styles.quoteCard}>
@@ -298,9 +406,15 @@ export default function CalendarScreen() {
 
       <View style={styles.selectedDateHeader}>
         <Text style={styles.selectedDateText}>{formatDate(selectedDate)}</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addEventButton}>
+        <TouchableOpacity
+          onPress={() => {
+            setEventId(null);
+            setModalVisible(true);
+          }}
+          style={styles.addEventButton}
+        >
           <Ionicons name="add" size={16} color={Colors.light} style={{ marginRight: 4 }} />
-          <Text style={styles.addEventText}>Add</Text>
+          <Text style={styles.addEventText}>Add / Amend Task</Text>
         </TouchableOpacity>
       </View>
 
@@ -322,12 +436,13 @@ export default function CalendarScreen() {
                 <Text style={styles.eventTitle}>
                   {item.title || (item.type === 'class' ? getCourseName(item.courseId) : 'Sacred Activity')}
                 </Text>
-                <BiblicalBadge label={item.type} variant={item.type === 'assignment' ? 'warning' : item.type === 'exam' ? 'error' : item.type === 'class' ? 'info' : 'success'} />
+                <BiblicalBadge label={item.type === 'exam' ? 'Test\\Exam' : item.type} variant={item.type === 'assignment' ? 'warning' : item.type === 'exam' ? 'error' : item.type === 'class' ? 'info' : 'success'} />
               </View>
 
-              {item.courseId && item.type !== 'class' && (
-                <Text style={styles.eventCourse}>{getCourseName(item.courseId)}</Text>
-              )}
+              {/* Connected course Taken or Individually if not connected */}
+              <Text style={styles.eventCourse}>
+                Course connection: {getCourseName(item.courseId)}
+              </Text>
 
               {item.startTime && item.endTime && (
                 <Text style={styles.eventTime}>
@@ -345,11 +460,20 @@ export default function CalendarScreen() {
               ) : item.notes ? (
                 <Text style={styles.eventDesc}>{item.notes}</Text>
               ) : null}
+
+              {item.type === 'exam' && item.scopeOfContent && (
+                <Text style={styles.scopeText}>Scope of content: {item.scopeOfContent}</Text>
+              )}
             </View>
 
-            <TouchableOpacity onPress={() => handleDeleteEvent(item)} style={styles.deleteButton}>
-              <Ionicons name="trash-outline" size={18} color={Colors.error} />
-            </TouchableOpacity>
+            <View style={styles.actionRow}>
+              <TouchableOpacity onPress={() => handleEditEvent(item)} style={styles.editButton}>
+                <Ionicons name="create-outline" size={18} color={Colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => requestDeleteEvent(item)} style={styles.deleteButton}>
+                <Ionicons name="trash-outline" size={18} color={Colors.error} />
+              </TouchableOpacity>
+            </View>
           </BiblicalCard>
         )}
       />
@@ -359,7 +483,7 @@ export default function CalendarScreen() {
         <View style={styles.modalOverlay}>
           <SafeAreaView style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Sacred Activity</Text>
+              <Text style={styles.modalTitle}>{eventId ? 'Amend Task' : 'Add Task / Activity'}</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
                 <Ionicons name="close" size={24} color={Colors.primary} />
               </TouchableOpacity>
@@ -367,7 +491,7 @@ export default function CalendarScreen() {
 
             {/* Form Type Tab Selector */}
             <View style={styles.formTabRow}>
-              {(['assignment', 'exam', 'class', 'devotion'] as FormType[]).map((type) => (
+              {(['assignment', 'exam', 'class', 'devotion', 'reading'] as FormType[]).map((type) => (
                 <TouchableOpacity
                   key={type}
                   onPress={() => {
@@ -383,34 +507,42 @@ export default function CalendarScreen() {
                   style={[styles.formTab, formType === type && styles.formTabActive]}
                 >
                   <Text style={[styles.formTabLabel, formType === type && styles.formTabLabelActive]}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                    {type === 'exam' ? 'Test\\Exam' : type.charAt(0).toUpperCase() + type.slice(1)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             <ScrollView contentContainerStyle={styles.formScroll}>
-              {/* Common Course Selector for academic types */}
-              {(formType === 'assignment' || formType === 'exam' || formType === 'class') && (
+              {/* Connected Course Selector */}
+              {(formType === 'assignment' || formType === 'exam' || formType === 'class' || formType === 'reading') && (
                 <View style={styles.formField}>
-                  <Text style={styles.fieldLabel}>Course Enrolled</Text>
+                  <Text style={styles.fieldLabel}>Course Connection (Optional for assignment/exam/reading)</Text>
                   <View style={styles.coursesDropdown}>
+                    <TouchableOpacity
+                      onPress={() => setCourseId('')}
+                      style={[
+                        styles.courseChoice,
+                        !courseId && styles.courseChoiceSelected,
+                      ]}
+                    >
+                      <View style={[styles.courseChoiceColor, { backgroundColor: '#777' }]} />
+                      <Text style={styles.courseChoiceText}>Individual (No Course)</Text>
+                    </TouchableOpacity>
+
                     {store.courses.map((c) => (
                       <TouchableOpacity
                         key={c.id}
                         onPress={() => setCourseId(c.id)}
                         style={[
                           styles.courseChoice,
-                          (courseId === c.id || (!courseId && store.courses[0]?.id === c.id)) && styles.courseChoiceSelected,
+                          courseId === c.id && styles.courseChoiceSelected,
                         ]}
                       >
                         <View style={[styles.courseChoiceColor, { backgroundColor: c.color }]} />
                         <Text style={styles.courseChoiceText}>{c.name}</Text>
                       </TouchableOpacity>
                     ))}
-                    {store.courses.length === 0 && (
-                      <Text style={styles.noCoursesWarning}>Please configure a Course in Settings first.</Text>
-                    )}
                   </View>
                 </View>
               )}
@@ -419,7 +551,7 @@ export default function CalendarScreen() {
               {formType !== 'class' && (
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>
-                    {formType === 'assignment' ? 'Assignment Title' : formType === 'exam' ? 'Exam Title' : 'Devotional Title'}
+                    {formType === 'assignment' ? 'Assignment Title' : formType === 'exam' ? 'Test/Exam Title' : formType === 'reading' ? 'Required Reading Title' : 'Devotional Title'}
                   </Text>
                   <TextInput
                     style={styles.formInput}
@@ -432,7 +564,7 @@ export default function CalendarScreen() {
               )}
 
               {/* Description / Notes */}
-              {formType !== 'class' && (
+              {formType !== 'class' && formType !== 'reading' && (
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Notes / Description</Text>
                   <TextInput
@@ -443,6 +575,31 @@ export default function CalendarScreen() {
                     placeholderTextColor={Colors.textTertiary}
                     multiline
                   />
+                </View>
+              )}
+
+              {/* Reading properties */}
+              {formType === 'reading' && (
+                <View style={styles.timeRow}>
+                  <View style={[styles.formField, { flex: 1, marginRight: Spacing.md }]}>
+                    <Text style={styles.fieldLabel}>Author</Text>
+                    <TextInput
+                      style={styles.formInput}
+                      value={author}
+                      onChangeText={setAuthor}
+                      placeholder="e.g. John Calvin"
+                    />
+                  </View>
+                  <View style={[styles.formField, { flex: 1 }]}>
+                    <Text style={styles.fieldLabel}>Total Pages</Text>
+                    <TextInput
+                      style={styles.formInput}
+                      value={pages}
+                      onChangeText={setPages}
+                      keyboardType="numeric"
+                      placeholder="100"
+                    />
+                  </View>
                 </View>
               )}
 
@@ -525,7 +682,7 @@ export default function CalendarScreen() {
 
               {formType === 'exam' && (
                 <View style={styles.formField}>
-                  <Text style={styles.fieldLabel}>Exam Type</Text>
+                  <Text style={styles.fieldLabel}>Exam/Test Type</Text>
                   <View style={styles.selectionRow}>
                     {['midterm', 'final', 'quiz', 'test'].map((type) => (
                       <TouchableOpacity
@@ -561,10 +718,47 @@ export default function CalendarScreen() {
               )}
 
               <TouchableOpacity onPress={handleCreateEvent} style={styles.submitBtn}>
-                <Text style={styles.submitBtnText}>Add Activity</Text>
+                <Text style={styles.submitBtnText}>{eventId ? 'Amend Task' : 'Add Activity'}</Text>
               </TouchableOpacity>
             </ScrollView>
           </SafeAreaView>
+        </View>
+      </Modal>
+
+      {/* Robust Custom Delete Confirm Modal */}
+      <Modal visible={deleteConfirmVisible} animationType="fade" transparent>
+        <View style={styles.deleteModalOverlay}>
+          <BiblicalCard variant="outlined" style={styles.deleteModalContent}>
+            <Text style={styles.deleteModalTitle}>Confirm Deletion</Text>
+            <BiblicalDivider />
+            <Text style={styles.deleteModalText}>
+              Are you sure you want to completely delete this item?
+            </Text>
+            <View style={styles.connectionDetailsBox}>
+              <Text style={styles.connectionTitle}>Connected functions & courses:</Text>
+              <Text style={styles.connectionDetails}>
+                - Connected to course taken: {getCourseName(eventToDelete?.courseId)}
+              </Text>
+              <Text style={styles.connectionDetails}>
+                - Function role: Tracker Schedule Activity ({eventToDelete?.type})
+              </Text>
+            </View>
+
+            <View style={styles.deleteActionRow}>
+              <TouchableOpacity
+                onPress={() => setDeleteConfirmVisible(false)}
+                style={[styles.deleteModalBtn, styles.deleteBtnCancel]}
+              >
+                <Text style={styles.deleteBtnTextCancel}>Don't Delete</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirmDelete}
+                style={[styles.deleteModalBtn, styles.deleteBtnConfirm]}
+              >
+                <Text style={styles.deleteBtnTextConfirm}>Complete Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </BiblicalCard>
         </View>
       </Modal>
     </SafeAreaView>
@@ -584,7 +778,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderColor: 'rgba(139, 111, 71, 0.4)',
     borderWidth: 1.5,
-    backgroundColor: '#FAF7F2', // Soft parchment cream
+    backgroundColor: '#FAF7F2',
   },
   ornamentText: {
     fontSize: 10,
@@ -732,10 +926,11 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   eventCourse: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: Colors.secondary,
     marginBottom: 4,
+    fontStyle: 'italic',
   },
   eventTime: {
     fontSize: 12,
@@ -754,10 +949,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 16,
   },
-  deleteButton: {
-    padding: Spacing.sm,
-    justifyContent: 'center',
+  scopeText: {
+    fontSize: 11,
+    color: Colors.secondary,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  actionRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: Spacing.sm,
+  },
+  editButton: {
+    padding: Spacing.xs,
+    marginRight: Spacing.xs,
+  },
+  deleteButton: {
+    padding: Spacing.xs,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -896,11 +1104,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.primary,
   },
-  noCoursesWarning: {
-    fontSize: 12,
-    color: Colors.error,
-    fontStyle: 'italic',
-  },
   selectionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -941,5 +1144,83 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(42, 42, 42, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  deleteModalContent: {
+    backgroundColor: Colors.background,
+    width: '100%',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderColor: Colors.secondary,
+    borderWidth: 2,
+  },
+  deleteModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.primary,
+    fontFamily: 'Georgia',
+    textTransform: 'uppercase',
+  },
+  deleteModalText: {
+    fontSize: 13,
+    color: Colors.primary,
+    marginVertical: Spacing.md,
+    fontStyle: 'italic',
+  },
+  connectionDetailsBox: {
+    backgroundColor: 'rgba(139, 111, 71, 0.05)',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderColor: 'rgba(139, 111, 71, 0.15)',
+    borderWidth: 1,
+    marginBottom: Spacing.lg,
+  },
+  connectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.secondary,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  connectionDetails: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    lineHeight: 16,
+  },
+  deleteActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  deleteModalBtn: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginLeft: Spacing.md,
+  },
+  deleteBtnCancel: {
+    backgroundColor: Colors.surface,
+    borderColor: 'rgba(139, 111, 71, 0.3)',
+    borderWidth: 1,
+  },
+  deleteBtnConfirm: {
+    backgroundColor: Colors.error,
+  },
+  deleteBtnTextCancel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  deleteBtnTextConfirm: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light,
+    textTransform: 'uppercase',
   },
 });

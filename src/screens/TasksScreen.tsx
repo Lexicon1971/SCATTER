@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store';
-import { BiblicalHeader, BiblicalCard, BiblicalBadge, BiblicalDivider } from '../components/BiblicalComponents';
+import { BiblicalHeader, BiblicalCard, BiblicalBadge, BiblicalDivider, BiblicalSection } from '../components/BiblicalComponents';
 import { Colors, Spacing, BorderRadius, Decorations } from '../styles/theme';
 
 type TaskFilter = 'all' | 'pending' | 'completed' | 'exams' | 'readings';
@@ -31,16 +31,27 @@ export default function TasksScreen() {
   const [dueDateStr, setDueDateStr] = useState(''); // YYYY-MM-DD
   const [dueTime, setDueTime] = useState('09:00');
   const [extraType, setExtraType] = useState(''); // homework, examType, etc.
+  const [scopeOfContent, setScopeOfContent] = useState('');
   const [reminderDays, setReminderDays] = useState('7');
 
   // Reading-specific Form States
   const [author, setAuthor] = useState('');
   const [totalPages, setTotalPages] = useState('100');
 
+  // Course addition form states
+  const [courseModalVisible, setCourseModalVisible] = useState(false);
+  const [newCourseName, setNewCourseName] = useState('');
+  const [newCourseInstructor, setNewCourseInstructor] = useState('');
+  const [newCourseCredits, setNewCourseCredits] = useState('3');
+
   // Progress modal states
   const [progressModalVisible, setProgressModalVisible] = useState(false);
   const [selectedReading, setSelectedReading] = useState<any>(null);
   const [readingProgress, setReadingProgress] = useState('0');
+
+  // Custom Delete Confirm Modal State
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<any>(null);
 
   const store = useAppStore();
 
@@ -86,20 +97,27 @@ export default function TasksScreen() {
     store.updateAssignment(id, { status: nextStatus, updatedAt: new Date() });
   };
 
-  const handleDeleteTask = (item: any) => {
-    if (item.taskType === 'assignment' || item.type) {
-      // It's an assignment
-      if (item.taskType === 'assignment') {
-        store.deleteAssignment(item.id);
-      } else if (item.taskType === 'exam') {
-        store.deleteExam(item.id);
-      } else if (item.taskType === 'reading') {
-        store.deleteReading(item.id);
-      }
-    }
+  const requestDeleteTask = (item: any) => {
+    setTaskToDelete(item);
+    setDeleteConfirmVisible(true);
   };
 
-  const getCourseName = (id: string) => {
+  const handleConfirmDelete = () => {
+    if (!taskToDelete) return;
+    const item = taskToDelete;
+    if (item.taskType === 'assignment') {
+      store.deleteAssignment(item.id);
+    } else if (item.taskType === 'exam') {
+      store.deleteExam(item.id);
+    } else if (item.taskType === 'reading') {
+      store.deleteReading(item.id);
+    }
+    setDeleteConfirmVisible(false);
+    setTaskToDelete(null);
+  };
+
+  const getCourseName = (id?: string) => {
+    if (!id) return 'Individual Task (No Course)';
     const course = store.courses.find((c) => c.id === id);
     return course ? course.name : 'Unknown Course';
   };
@@ -108,7 +126,7 @@ export default function TasksScreen() {
     if (!title) return;
 
     const id = `task-${Date.now()}`;
-    const targetCourse = courseId || (store.courses[0] ? store.courses[0].id : '');
+    const targetCourse = courseId || (store.courses[0] ? store.courses[0].id : undefined);
     const targetDate = dueDateStr ? new Date(dueDateStr) : new Date();
 
     if (formType === 'assignment') {
@@ -135,6 +153,7 @@ export default function TasksScreen() {
         startTime: dueTime,
         endTime: '11:00',
         examType: (extraType || 'test') as any,
+        scopeOfContent: scopeOfContent || 'General study guidelines',
         reminderDays: parseInt(reminderDays) || 7,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -163,8 +182,28 @@ export default function TasksScreen() {
     setDueDateStr('');
     setDueTime('09:00');
     setExtraType('');
+    setScopeOfContent('');
     setReminderDays('7');
     setModalVisible(false);
+  };
+
+  const handleAddCourse = () => {
+    if (!newCourseName) return;
+    const currentSemesterId = store.semesters[0]?.id || 'sem-new';
+    store.addCourse({
+      id: `course-${Date.now()}`,
+      semesterId: currentSemesterId,
+      name: newCourseName,
+      instructor: newCourseInstructor || 'Staff',
+      credits: parseInt(newCourseCredits) || 3,
+      color: '#8B6F47',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    setNewCourseName('');
+    setNewCourseInstructor('');
+    setNewCourseCredits('3');
+    setCourseModalVisible(false);
   };
 
   const openProgressModal = (reading: any) => {
@@ -213,6 +252,34 @@ export default function TasksScreen() {
     <SafeAreaView style={styles.container}>
       <BiblicalHeader title="Academic Pursuits" subtitle="Coursework, Exams & Readings" />
 
+      {/* Goal & Required Readings / Courses Controls */}
+      <BiblicalCard variant="outlined" style={styles.creditsCard}>
+        <Text style={styles.creditsTitle}>Academic Goal Progress</Text>
+        <Text style={styles.creditsSubtitle}>
+          Achieved: <Text style={styles.boldText}>{store.manualCreditsAchieved}</Text> / Goal: <Text style={styles.boldText}>{store.creditsGoal}</Text> Credits
+        </Text>
+        <View style={styles.goalRow}>
+          <TouchableOpacity
+            onPress={() => store.setManualCreditsAchieved(Math.max(0, store.manualCreditsAchieved - 3))}
+            style={styles.adjustBtn}
+          >
+            <Text style={styles.adjustBtnText}>-3 Credits</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => store.setManualCreditsAchieved(store.manualCreditsAchieved + 3)}
+            style={styles.adjustBtn}
+          >
+            <Text style={styles.adjustBtnText}>+3 Credits</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setCourseModalVisible(true)}
+            style={[styles.adjustBtn, styles.accentAdjustBtn]}
+          >
+            <Text style={styles.adjustBtnText}>+ Add Course</Text>
+          </TouchableOpacity>
+        </View>
+      </BiblicalCard>
+
       {/* Filter Selector Row */}
       <View style={styles.filterContainer}>
         {(['all', 'pending', 'completed', 'exams', 'readings'] as TaskFilter[]).map((f) => (
@@ -222,7 +289,7 @@ export default function TasksScreen() {
             onPress={() => setFilter(f)}
           >
             <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'exams' ? 'Test\\Exam' : f.charAt(0).toUpperCase() + f.slice(1)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -271,9 +338,14 @@ export default function TasksScreen() {
                   <Text style={styles.taskMeta}>Due: {new Date(item.dueDate).toLocaleDateString()} at {item.dueTime}</Text>
                 )}
                 {isExam && (
-                  <Text style={styles.taskMeta}>
-                    Scheduled: {new Date(item.scheduledDate).toLocaleDateString()} from {item.startTime}
-                  </Text>
+                  <View>
+                    <Text style={styles.taskMeta}>
+                      Scheduled: {new Date(item.scheduledDate).toLocaleDateString()} from {item.startTime}
+                    </Text>
+                    {item.scopeOfContent && (
+                      <Text style={styles.scopeOfContentText}>Scope of Content: {item.scopeOfContent}</Text>
+                    )}
+                  </View>
                 )}
                 {isReading && (
                   <View style={styles.readingMetaContainer}>
@@ -296,11 +368,11 @@ export default function TasksScreen() {
               {/* Status Badge & Actions */}
               <View style={styles.taskRightSide}>
                 <BiblicalBadge
-                  label={item.status || item.taskType}
+                  label={item.status || (item.taskType === 'exam' ? 'Test\\Exam' : item.taskType)}
                   variant={getStatusVariant(item.status || item.taskType)}
                   style={styles.badgeStyle}
                 />
-                <TouchableOpacity onPress={() => handleDeleteTask(item)} style={styles.deleteButton}>
+                <TouchableOpacity onPress={() => requestDeleteTask(item)} style={styles.deleteButton}>
                   <Ionicons name="trash-outline" size={16} color={Colors.error} />
                 </TouchableOpacity>
               </View>
@@ -334,7 +406,7 @@ export default function TasksScreen() {
                   style={[styles.formTab, formType === type && styles.formTabActive]}
                 >
                   <Text style={[styles.formTabLabel, formType === type && styles.formTabLabelActive]}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                    {type === 'exam' ? 'Test\\Exam' : type.charAt(0).toUpperCase() + type.slice(1)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -343,15 +415,26 @@ export default function TasksScreen() {
             <ScrollView contentContainerStyle={styles.formScroll}>
               {/* Course selection */}
               <View style={styles.formField}>
-                <Text style={styles.fieldLabel}>Course</Text>
+                <Text style={styles.fieldLabel}>Course (Optional)</Text>
                 <View style={styles.coursesDropdown}>
+                  <TouchableOpacity
+                    onPress={() => setCourseId('')}
+                    style={[
+                      styles.courseChoice,
+                      !courseId && styles.courseChoiceSelected,
+                    ]}
+                  >
+                    <View style={[styles.courseChoiceColor, { backgroundColor: '#777' }]} />
+                    <Text style={styles.courseChoiceText}>Individual (No Course)</Text>
+                  </TouchableOpacity>
+
                   {store.courses.map((c) => (
                     <TouchableOpacity
                       key={c.id}
                       onPress={() => setCourseId(c.id)}
                       style={[
                         styles.courseChoice,
-                        (courseId === c.id || (!courseId && store.courses[0]?.id === c.id)) && styles.courseChoiceSelected,
+                        courseId === c.id && styles.courseChoiceSelected,
                       ]}
                     >
                       <View style={[styles.courseChoiceColor, { backgroundColor: c.color }]} />
@@ -384,6 +467,20 @@ export default function TasksScreen() {
                     placeholder="Enter details..."
                     placeholderTextColor={Colors.textTertiary}
                     multiline
+                  />
+                </View>
+              )}
+
+              {/* Scope of Content for Test/Exams */}
+              {formType === 'exam' && (
+                <View style={styles.formField}>
+                  <Text style={styles.fieldLabel}>Scope of Content</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={scopeOfContent}
+                    onChangeText={setScopeOfContent}
+                    placeholder="e.g. Chapters 1-5, Covenant theology lecture notes"
+                    placeholderTextColor={Colors.textTertiary}
                   />
                 </View>
               )}
@@ -509,6 +606,53 @@ export default function TasksScreen() {
         </View>
       </Modal>
 
+      {/* Course Modal */}
+      <Modal visible={courseModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <SafeAreaView style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Register New Course</Text>
+              <TouchableOpacity onPress={() => setCourseModalVisible(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={24} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.formContainer}>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Course Code & Title</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newCourseName}
+                  onChangeText={setNewCourseName}
+                  placeholder="e.g. ST-601: Covenant Theology"
+                />
+              </View>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Instructor</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newCourseInstructor}
+                  onChangeText={setNewCourseInstructor}
+                  placeholder="e.g. Dr. Francis Turretin"
+                />
+              </View>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Credits Goal</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newCourseCredits}
+                  onChangeText={setNewCourseCredits}
+                  keyboardType="numeric"
+                  placeholder="3"
+                />
+              </View>
+              <TouchableOpacity onPress={handleAddCourse} style={styles.submitBtn}>
+                <Text style={styles.submitBtnText}>Add Course</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
+
       {/* Reading Progress Update Modal */}
       <Modal visible={progressModalVisible} animationType="fade" transparent>
         <View style={styles.progressModalOverlay}>
@@ -544,6 +688,43 @@ export default function TasksScreen() {
           </BiblicalCard>
         </View>
       </Modal>
+
+      {/* Robust Custom Delete Confirm Modal */}
+      <Modal visible={deleteConfirmVisible} animationType="fade" transparent>
+        <View style={styles.deleteModalOverlay}>
+          <BiblicalCard variant="outlined" style={styles.deleteModalContent}>
+            <Text style={styles.deleteModalTitle}>Confirm Deletion</Text>
+            <BiblicalDivider />
+            <Text style={styles.deleteModalText}>
+              Are you sure you want to completely delete this item?
+            </Text>
+            <View style={styles.connectionDetailsBox}>
+              <Text style={styles.connectionTitle}>Connected functions & courses:</Text>
+              <Text style={styles.connectionDetails}>
+                - Connected to course taken: {getCourseName(taskToDelete?.courseId)}
+              </Text>
+              <Text style={styles.connectionDetails}>
+                - Function role: Academic Pursuit Task ({taskToDelete?.taskType})
+              </Text>
+            </View>
+
+            <View style={styles.deleteActionRow}>
+              <TouchableOpacity
+                onPress={() => setDeleteConfirmVisible(false)}
+                style={[styles.deleteModalBtn, styles.deleteBtnCancel]}
+              >
+                <Text style={styles.deleteBtnTextCancel}>Don't Delete</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirmDelete}
+                style={[styles.deleteModalBtn, styles.deleteBtnConfirm]}
+              >
+                <Text style={styles.deleteBtnTextConfirm}>Complete Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </BiblicalCard>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -554,6 +735,49 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
+  },
+  creditsCard: {
+    padding: Spacing.md,
+    borderColor: 'rgba(139, 111, 71, 0.4)',
+    borderWidth: 1.5,
+    backgroundColor: '#FAF7F2',
+    marginBottom: Spacing.md,
+  },
+  creditsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primary,
+    fontFamily: 'Georgia',
+    textTransform: 'uppercase',
+  },
+  creditsSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+    marginBottom: Spacing.md,
+  },
+  boldText: {
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  goalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  adjustBtn: {
+    backgroundColor: Colors.secondary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: BorderRadius.md,
+  },
+  accentAdjustBtn: {
+    backgroundColor: Colors.primary,
+  },
+  adjustBtnText: {
+    color: Colors.light,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   filterContainer: {
     flexDirection: 'row',
@@ -631,6 +855,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textSecondary,
     fontStyle: 'italic',
+  },
+  scopeOfContentText: {
+    fontSize: 11,
+    color: Colors.secondary,
+    fontWeight: '600',
+    marginTop: 2,
   },
   readingMetaContainer: {
     marginTop: 4,
@@ -924,5 +1154,86 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.light,
     textTransform: 'uppercase',
+  },
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(42, 42, 42, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  deleteModalContent: {
+    backgroundColor: Colors.background,
+    width: '100%',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderColor: Colors.secondary,
+    borderWidth: 2,
+  },
+  deleteModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.primary,
+    fontFamily: 'Georgia',
+    textTransform: 'uppercase',
+  },
+  deleteModalText: {
+    fontSize: 13,
+    color: Colors.primary,
+    marginVertical: Spacing.md,
+    fontStyle: 'italic',
+  },
+  connectionDetailsBox: {
+    backgroundColor: 'rgba(139, 111, 71, 0.05)',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderColor: 'rgba(139, 111, 71, 0.15)',
+    borderWidth: 1,
+    marginBottom: Spacing.lg,
+  },
+  connectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.secondary,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  connectionDetails: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    lineHeight: 16,
+  },
+  deleteActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  deleteModalBtn: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginLeft: Spacing.md,
+  },
+  deleteBtnCancel: {
+    backgroundColor: Colors.surface,
+    borderColor: 'rgba(139, 111, 71, 0.3)',
+    borderWidth: 1,
+  },
+  deleteBtnConfirm: {
+    backgroundColor: Colors.error,
+  },
+  deleteBtnTextCancel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  deleteBtnTextConfirm: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light,
+    textTransform: 'uppercase',
+  },
+  formContainer: {
+    paddingBottom: Spacing.lg,
   },
 });
