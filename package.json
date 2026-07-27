@@ -1,6 +1,6 @@
 {
   "name": "scatter-seminary-tracker",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Mobile app to track seminary activities, assignments, and schedules",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -22,6 +22,7 @@
     "expo-av": "^13.10.0",
     "expo-calendar": "^13.0.5",
     "expo-notifications": "^0.27.0",
+    "firebase": "^12.16.0",
     "react": "18.2.0",
     "react-dom": "^18.2.0",
     "react-native": "0.73.0",
