@@ -7,6 +7,9 @@ jest.mock("firebase/firestore", () => ({
   query: jest.fn(),
   where: jest.fn(),
   getDocs: jest.fn(),
+  Timestamp: {
+    fromDate: jest.fn((date) => `Timestamp-${date.toISOString()}`),
+  },
 }));
 
 jest.mock("../firebase", () => ({
@@ -30,7 +33,10 @@ describe("calendarService", () => {
       const mockEvent = {
         userId: "user-123",
         title: "Theology Class",
-        date: "2026-03-10",
+        description: "Introductory seminar",
+        startDate: "Timestamp-2026-03-10T17:00:00.000Z",
+        endDate: "Timestamp-2026-03-10T18:00:00.000Z",
+        category: "personal",
       };
 
       const mockDocRef = { id: "new-doc-id-999" };
@@ -51,7 +57,10 @@ describe("calendarService", () => {
       const mockEvent = {
         userId: "user-123",
         title: "Theology Class",
-        date: "2026-03-10",
+        description: "Introductory seminar",
+        startDate: "Timestamp-2026-03-10T17:00:00.000Z",
+        endDate: "Timestamp-2026-03-10T18:00:00.000Z",
+        category: "personal",
       };
 
       const mockError = new Error("Firestore write failed");
@@ -65,8 +74,8 @@ describe("calendarService", () => {
   describe("fetchEvents", () => {
     it("should successfully fetch events for a user within a date range", async () => {
       const mockEvents = [
-        { id: "1", userId: "user-123", title: "Class 1", date: "2026-03-10" },
-        { id: "2", userId: "user-123", title: "Class 2", date: "2026-03-11" },
+        { id: "1", userId: "user-123", title: "Class 1", description: "Class session", startDate: "Timestamp-2026-03-10T00:00:00.000Z", endDate: "Timestamp-2026-03-10T01:00:00.000Z", category: "personal" },
+        { id: "2", userId: "user-123", title: "Class 2", description: "Class session", startDate: "Timestamp-2026-03-11T00:00:00.000Z", endDate: "Timestamp-2026-03-11T01:00:00.000Z", category: "personal" },
       ];
 
       const mockDocs = mockEvents.map(event => ({
@@ -83,7 +92,7 @@ describe("calendarService", () => {
 
       getDocs.mockResolvedValueOnce(mockQuerySnapshot);
 
-      const result = await fetchEvents("user-123", "2026-03-09", "2026-03-12");
+      const result = await fetchEvents("user-123", "Timestamp-2026-03-09T00:00:00.000Z", "Timestamp-2026-03-12T00:00:00.000Z");
 
       expect(collection).toHaveBeenCalledWith({}, "events");
       expect(query).toHaveBeenCalled();
@@ -97,7 +106,7 @@ describe("calendarService", () => {
       const mockError = new Error("Firestore read failed");
       getDocs.mockRejectedValueOnce(mockError);
 
-      await expect(fetchEvents("user-123", "2026-03-09", "2026-03-12")).rejects.toThrow("Firestore read failed");
+      await expect(fetchEvents("user-123", "Timestamp-2026-03-09T00:00:00.000Z", "Timestamp-2026-03-12T00:00:00.000Z")).rejects.toThrow("Firestore read failed");
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
   });

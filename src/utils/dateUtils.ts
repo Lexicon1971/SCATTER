@@ -1,11 +1,23 @@
 export function formatDate(date: Date): string {
-  const options: Intl.DateTimeFormatOptions = {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  };
-  return date.toLocaleDateString('en-US', options);
+  // Always use dd/mm/yyyy format
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+export function parseDateString(dateStr: string): Date {
+  // Safely parse dd/mm/yyyy or yyyy-mm-dd
+  if (dateStr.includes('/')) {
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      return new Date(year, month, day);
+    }
+  }
+  return new Date(dateStr);
 }
 
 export function formatTime(time: string): string {

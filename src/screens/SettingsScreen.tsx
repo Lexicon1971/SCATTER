@@ -650,7 +650,12 @@ export default function SettingsScreen() {
       <Modal visible={deleteConfirmVisible} animationType="fade" transparent>
         <View style={styles.deleteModalOverlay}>
           <BiblicalCard variant="outlined" style={styles.deleteModalContent}>
-            <Text style={styles.deleteModalTitle}>Confirm Deletion</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={styles.deleteModalTitle}>Confirm Deletion</Text>
+              <TouchableOpacity onPress={() => setDeleteConfirmVisible(false)}>
+                <Ionicons name="close" size={20} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
             <BiblicalDivider />
             <Text style={styles.deleteModalText}>
               Are you sure you want to completely delete this item?

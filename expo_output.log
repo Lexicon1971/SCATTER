@@ -1,9 +1,5 @@
-
-> scatter-seminary-tracker@1.5.0 web
-> expo start --web
-
 Starting project at /app
-(node:114531) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(node:159237) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
 Starting Metro Bundler
 The following packages should be updated for best compatibility with the installed expo version:
@@ -12,11 +8,13 @@ The following packages should be updated for best compatibility with the install
   react-native-safe-area-context@4.7.2 - expected version: 4.8.2
   react-native-screens@3.27.0 - expected version: ~3.29.0
   @types/react@18.3.31 - expected version: ~18.2.45
+  babel-preset-expo@57.0.4 - expected version: ^10.0.0
 Your project may not work correctly until you install the correct versions of the packages.
 Waiting on http://localhost:8081
 Logs for your project will appear below.
-transform[stderr]: (node:119777) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+transform[stderr]: (node:164051) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 transform[stderr]: (Use `node --trace-deprecation ...` to show where the warning was created)
-Web Bundled 15276ms (node_modules/expo/AppEntry.js)
-Web Bundled 45ms (node_modules/expo/AppEntry.js)
-Web Bundled 43ms (node_modules/expo/AppEntry.js)
+Web Bundled 11212ms (node_modules/expo/AppEntry.js)
+Web Bundled 40ms (node_modules/expo/AppEntry.js)
+Web Bundled 37ms (node_modules/expo/AppEntry.js)
+Web Bundled 41ms (node_modules/expo/AppEntry.js)

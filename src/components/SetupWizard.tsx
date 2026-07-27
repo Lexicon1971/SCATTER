@@ -17,13 +17,26 @@ import { BiblicalHeader, BiblicalCard, BiblicalDivider } from './BiblicalCompone
 
 const { width } = Dimensions.get('window');
 
+interface TestInstance {
+  testNo: string;
+  testDate: string; // YYYY-MM-DD
+}
+
+interface AssignmentInstance {
+  assignmentTitle: string;
+  assignmentDate: string; // YYYY-MM-DD
+}
+
 interface SubjectInput {
   courseCode: string;
   lecturer: string;
-  testNo: string;
-  testDate: string; // YYYY-MM-DD
-  assignmentTitle: string;
-  assignmentDate: string; // YYYY-MM-DD
+  classDay: string; // "1" for Monday, etc.
+  classStartTime: string; // "08:00"
+  classEndTime: string; // "10:00"
+  numTests: string; // number of tests
+  tests: TestInstance[];
+  numAssignments: string; // number of assignments
+  assignments: AssignmentInstance[];
 }
 
 export default function SetupWizard() {
@@ -53,8 +66,20 @@ export default function SetupWizard() {
   const [mensStart, setMensStart] = useState('08:00');
   const [mensEnd, setMensEnd] = useState('09:30');
 
+  // Mentorship and Class Devotions
+  const [hasMentorship, setHasMentorship] = useState(true);
+  const [mentorshipDay, setMentorshipDay] = useState('2'); // Tuesday
+  const [mentorshipStart, setMentorshipStart] = useState('14:00');
+  const [mentorshipEnd, setMentorshipEnd] = useState('15:00');
+
+  const [hasClassDevotion, setHasClassDevotion] = useState(true);
+  const [classDevotionDay, setClassDevotionDay] = useState('1'); // Monday
+  const [classDevotionStart, setClassDevotionStart] = useState('08:30');
+  const [classDevotionEnd, setClassDevotionEnd] = useState('09:00');
+
   // STEP 4: Sunday Worship & Ad Hoc Meetings / Conventions
-  const [hasSundayWorship, setHasSundayWorship] = useState(true);
+  const [hasSundayMorningWorship, setHasSundayMorningWorship] = useState(true);
+  const [hasSundayEveningWorship, setHasSundayEveningWorship] = useState(true);
   const [sundayMorningStart, setSundayMorningStart] = useState('09:30');
   const [sundayMorningEnd, setSundayMorningEnd] = useState('11:00');
   const [sundayEveningStart, setSundayEveningStart] = useState('18:00');
@@ -83,9 +108,39 @@ export default function SetupWizard() {
   // STEP 7: Subjects & Modules Count & Details
   const [subjectCount, setSubjectCount] = useState('3');
   const [subjects, setSubjects] = useState<SubjectInput[]>([
-    { courseCode: 'ST-601: Covenant Theology', lecturer: 'Dr. Francis Turretin', testNo: 'Test 1', testDate: '2026-09-15', assignmentTitle: 'Turretin Grace Analysis', assignmentDate: '2026-10-10' },
-    { courseCode: 'NT-502: Pauline Epistles', lecturer: 'Dr. Herman Ridderbos', testNo: 'Midterm', testDate: '2026-10-05', assignmentTitle: 'Romans 9 Exegesis', assignmentDate: '2026-11-12' },
-    { courseCode: 'CH-501: Reformed Ecclesiology', lecturer: 'Dr. John Knox', testNo: 'In-Class Test', testDate: '2026-09-28', assignmentTitle: 'Presbyterian Polity Essay', assignmentDate: '2026-10-25' },
+    {
+      courseCode: 'ST-601: Covenant Theology',
+      lecturer: 'Dr. Francis Turretin',
+      classDay: '1',
+      classStartTime: '08:00',
+      classEndTime: '10:00',
+      numTests: '1',
+      tests: [{ testNo: 'Test 1', testDate: '2026-09-15' }],
+      numAssignments: '1',
+      assignments: [{ assignmentTitle: 'Turretin Grace Analysis', assignmentDate: '2026-10-10' }],
+    },
+    {
+      courseCode: 'NT-502: Pauline Epistles',
+      lecturer: 'Dr. Herman Ridderbos',
+      classDay: '2',
+      classStartTime: '10:00',
+      classEndTime: '12:00',
+      numTests: '1',
+      tests: [{ testNo: 'Midterm', testDate: '2026-10-05' }],
+      numAssignments: '1',
+      assignments: [{ assignmentTitle: 'Romans 9 Exegesis', assignmentDate: '2026-11-12' }],
+    },
+    {
+      courseCode: 'CH-501: Reformed Ecclesiology',
+      lecturer: 'Dr. John Knox',
+      classDay: '3',
+      classStartTime: '14:00',
+      classEndTime: '16:00',
+      numTests: '1',
+      tests: [{ testNo: 'In-Class Test', testDate: '2026-09-28' }],
+      numAssignments: '1',
+      assignments: [{ assignmentTitle: 'Presbyterian Polity Essay', assignmentDate: '2026-10-25' }],
+    },
   ]);
 
   const handleSubjectCountChange = (val: string) => {
@@ -102,10 +157,13 @@ export default function SetupWizard() {
         current.push({
           courseCode: `Course ${current.length + 1}`,
           lecturer: '',
-          testNo: 'Test 1',
-          testDate: '',
-          assignmentTitle: '',
-          assignmentDate: '',
+          classDay: '1',
+          classStartTime: '08:00',
+          classEndTime: '10:00',
+          numTests: '1',
+          tests: [{ testNo: 'Test 1', testDate: '' }],
+          numAssignments: '1',
+          assignments: [{ assignmentTitle: '', assignmentDate: '' }],
         });
       }
     } else if (count < current.length) {
@@ -116,7 +174,53 @@ export default function SetupWizard() {
 
   const updateSubjectField = (index: number, field: keyof SubjectInput, val: string) => {
     const updated = [...subjects];
-    updated[index][field] = val;
+    (updated[index] as any)[field] = val;
+    setSubjects(updated);
+  };
+
+  const handleTestsCountChange = (subjectIndex: number, val: string) => {
+    const updated = [...subjects];
+    updated[subjectIndex].numTests = val;
+    const count = parseInt(val, 10) || 0;
+    const currentTests = [...updated[subjectIndex].tests];
+    if (count > currentTests.length) {
+      const diff = count - currentTests.length;
+      for (let i = 0; i < diff; i++) {
+        currentTests.push({ testNo: `Test ${currentTests.length + 1}`, testDate: '' });
+      }
+    } else if (count < currentTests.length) {
+      currentTests.splice(count);
+    }
+    updated[subjectIndex].tests = currentTests;
+    setSubjects(updated);
+  };
+
+  const handleAssignmentsCountChange = (subjectIndex: number, val: string) => {
+    const updated = [...subjects];
+    updated[subjectIndex].numAssignments = val;
+    const count = parseInt(val, 10) || 0;
+    const currentAssignments = [...updated[subjectIndex].assignments];
+    if (count > currentAssignments.length) {
+      const diff = count - currentAssignments.length;
+      for (let i = 0; i < diff; i++) {
+        currentAssignments.push({ assignmentTitle: `Assignment ${currentAssignments.length + 1}`, assignmentDate: '' });
+      }
+    } else if (count < currentAssignments.length) {
+      currentAssignments.splice(count);
+    }
+    updated[subjectIndex].assignments = currentAssignments;
+    setSubjects(updated);
+  };
+
+  const updateTestField = (subjectIndex: number, testIndex: number, field: keyof TestInstance, val: string) => {
+    const updated = [...subjects];
+    updated[subjectIndex].tests[testIndex][field] = val;
+    setSubjects(updated);
+  };
+
+  const updateAssignmentField = (subjectIndex: number, assignIndex: number, field: keyof AssignmentInstance, val: string) => {
+    const updated = [...subjects];
+    updated[subjectIndex].assignments[assignIndex][field] = val;
     setSubjects(updated);
   };
 
@@ -194,6 +298,34 @@ export default function SetupWizard() {
         updatedAt: new Date(),
       });
     }
+
+    if (hasMentorship) {
+      store.addDevotionalTime({
+        id: `mentorship-${Date.now()}`,
+        semesterId,
+        dayOfWeek: parseInt(mentorshipDay) || 2,
+        startTime: mentorshipStart,
+        endTime: mentorshipEnd,
+        title: "Seminary Mentorship Activity",
+        type: 'mentorship',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    if (hasClassDevotion) {
+      store.addDevotionalTime({
+        id: `class-devotion-${Date.now()}`,
+        semesterId,
+        dayOfWeek: parseInt(classDevotionDay) || 1,
+        startTime: classDevotionStart,
+        endTime: classDevotionEnd,
+        title: "Devotion During Class at Seminary",
+        type: 'class_devotion',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
     if (hasMensMeeting) {
       store.addDevotionalTime({
         id: `mens-meet-${Date.now()}`,
@@ -209,7 +341,7 @@ export default function SetupWizard() {
     }
 
     // 4. Sunday Worship & Ad Hoc
-    if (hasSundayWorship) {
+    if (hasSundayMorningWorship) {
       store.addDevotionalTime({
         id: `sunday-morning-${Date.now()}`,
         semesterId,
@@ -221,6 +353,8 @@ export default function SetupWizard() {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+    }
+    if (hasSundayEveningWorship) {
       store.addDevotionalTime({
         id: `sunday-evening-${Date.now()}`,
         semesterId,
@@ -249,33 +383,8 @@ export default function SetupWizard() {
     }
 
     // 5. Lunch & Tea, Study Breaks
-    if (hasBreaks) {
-      const days = [1, 2, 3, 4, 5];
-      days.forEach((day) => {
-        store.addDevotionalTime({
-          id: `lunch-${day}-${Date.now()}`,
-          semesterId,
-          dayOfWeek: day,
-          startTime: lunchStart,
-          endTime: lunchEnd,
-          title: 'Lunch Break & Fellowship',
-          type: 'lunch_tea',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-        store.addDevotionalTime({
-          id: `tea-${day}-${Date.now()}`,
-          semesterId,
-          dayOfWeek: day,
-          startTime: teaStart,
-          endTime: teaEnd,
-          title: 'Afternoon Tea Break',
-          type: 'lunch_tea',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      });
-    }
+    store.setLunchTeaBreaksEnabled(hasBreaks);
+    store.setLunchTeaTimes(lunchStart, lunchEnd, teaStart, teaEnd);
     if (hasStudyBreak) {
       const days = [1, 2, 3, 4, 5];
       days.forEach((day) => {
@@ -313,38 +422,53 @@ export default function SetupWizard() {
         updatedAt: new Date(),
       });
 
-      // Add Test / Exam if specified
-      if (subj.testNo && subj.testDate) {
-        store.addExam({
-          id: `exam-${index}-${Date.now()}`,
-          courseId,
-          title: `${subj.testNo}: In-class Assessment`,
-          scheduledDate: new Date(subj.testDate),
-          startTime: '09:00',
-          endTime: '11:00',
-          examType: 'test',
-          scopeOfContent: 'Assigned curriculum chapters',
-          reminderDays: 7,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
+      // Automatically add Class Session with the specified Day of Week, Start and Finish times
+      store.addClassSession({
+        id: `class-${index}-${Date.now()}`,
+        courseId,
+        dayOfWeek: parseInt(subj.classDay, 10) || 1,
+        startTime: subj.classStartTime || '08:00',
+        endTime: subj.classEndTime || '10:00',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
-      // Add Assignment if specified
-      if (subj.assignmentTitle && subj.assignmentDate) {
-        store.addAssignment({
-          id: `assign-${index}-${Date.now()}`,
-          courseId,
-          title: subj.assignmentTitle,
-          dueDate: new Date(subj.assignmentDate),
-          dueTime: '23:59',
-          type: 'homework',
-          status: 'pending',
-          reminderDays: 7,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
+      // Add multiple Test instances as entered dynamically
+      subj.tests.forEach((test, testIdx) => {
+        if (test.testNo && test.testDate) {
+          store.addExam({
+            id: `exam-${index}-${testIdx}-${Date.now()}`,
+            courseId,
+            title: `${test.testNo}: In-class Assessment`,
+            scheduledDate: new Date(test.testDate),
+            startTime: '09:00',
+            endTime: '11:00',
+            examType: 'test',
+            scopeOfContent: 'Assigned curriculum chapters',
+            reminderDays: 7,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        }
+      });
+
+      // Add multiple Assignment instances as entered dynamically
+      subj.assignments.forEach((assign, assignIdx) => {
+        if (assign.assignmentTitle && assign.assignmentDate) {
+          store.addAssignment({
+            id: `assign-${index}-${assignIdx}-${Date.now()}`,
+            courseId,
+            title: assign.assignmentTitle,
+            dueDate: new Date(assign.assignmentDate),
+            dueTime: '23:59',
+            type: 'homework',
+            status: 'pending',
+            reminderDays: 7,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        }
+      });
     });
 
     // 7. General Semester Exams Start Date (add standard exam block event)
@@ -505,7 +629,7 @@ export default function SetupWizard() {
 
   const renderMeetingsStep = () => (
     <View style={styles.stepContainer}>
-      <BiblicalHeader title="Saints Assembly" subtitle="Prayer & Fellowship Meetings" />
+      <BiblicalHeader title="Saints Assembly" subtitle="Prayer, Fellowship, Devotions & Mentorship" />
       <ScrollView contentContainerStyle={styles.formScroll}>
         {/* Prayer Meeting */}
         <TouchableOpacity
@@ -569,6 +693,70 @@ export default function SetupWizard() {
           </View>
         )}
 
+        <BiblicalDivider />
+
+        {/* Mentorship Activity */}
+        <TouchableOpacity
+          style={styles.toggleRow}
+          onPress={() => setHasMentorship(!hasMentorship)}
+        >
+          <View style={[styles.checkbox, hasMentorship && styles.checkboxChecked]}>
+            {hasMentorship && <Ionicons name="checkmark" size={14} color={Colors.light} />}
+          </View>
+          <Text style={styles.toggleLabel}>Include Weekly Mentorship Activity</Text>
+        </TouchableOpacity>
+
+        {hasMentorship && (
+          <View style={styles.indentedFields}>
+            <View style={styles.formField}>
+              <Text style={styles.fieldLabel}>Day of Week (0-6)</Text>
+              <TextInput style={styles.formInput} value={mentorshipDay} onChangeText={setMentorshipDay} keyboardType="numeric" />
+            </View>
+            <View style={styles.timeRow}>
+              <View style={[styles.formField, { flex: 1, marginRight: Spacing.md }]}>
+                <Text style={styles.fieldLabel}>Start Time (HH:mm)</Text>
+                <TextInput style={styles.formInput} value={mentorshipStart} onChangeText={setMentorshipStart} />
+              </View>
+              <View style={[styles.formField, { flex: 1 }]}>
+                <Text style={styles.fieldLabel}>End Time (HH:mm)</Text>
+                <TextInput style={styles.formInput} value={mentorshipEnd} onChangeText={setMentorshipEnd} />
+              </View>
+            </View>
+          </View>
+        )}
+
+        <BiblicalDivider />
+
+        {/* Class Devotions */}
+        <TouchableOpacity
+          style={styles.toggleRow}
+          onPress={() => setHasClassDevotion(!hasClassDevotion)}
+        >
+          <View style={[styles.checkbox, hasClassDevotion && styles.checkboxChecked]}>
+            {hasClassDevotion && <Ionicons name="checkmark" size={14} color={Colors.light} />}
+          </View>
+          <Text style={styles.toggleLabel}>Include Weekly Devotion During Class at Seminary</Text>
+        </TouchableOpacity>
+
+        {hasClassDevotion && (
+          <View style={styles.indentedFields}>
+            <View style={styles.formField}>
+              <Text style={styles.fieldLabel}>Day of Week (0-6)</Text>
+              <TextInput style={styles.formInput} value={classDevotionDay} onChangeText={setClassDevotionDay} keyboardType="numeric" />
+            </View>
+            <View style={styles.timeRow}>
+              <View style={[styles.formField, { flex: 1, marginRight: Spacing.md }]}>
+                <Text style={styles.fieldLabel}>Start Time (HH:mm)</Text>
+                <TextInput style={styles.formInput} value={classDevotionStart} onChangeText={setClassDevotionStart} />
+              </View>
+              <View style={[styles.formField, { flex: 1 }]}>
+                <Text style={styles.fieldLabel}>End Time (HH:mm)</Text>
+                <TextInput style={styles.formInput} value={classDevotionEnd} onChangeText={setClassDevotionEnd} />
+              </View>
+            </View>
+          </View>
+        )}
+
         <View style={styles.navigationRow}>
           <TouchableOpacity onPress={() => setCurrentStep(2)} style={styles.secondaryBtn}>
             <Ionicons name="arrow-back" size={16} color={Colors.primary} style={{ marginRight: 8 }} />
@@ -587,18 +775,18 @@ export default function SetupWizard() {
     <View style={styles.stepContainer}>
       <BiblicalHeader title="Sabbath & Assemblies" subtitle="Sunday Worship & Conventions" />
       <ScrollView contentContainerStyle={styles.formScroll}>
-        {/* Sunday Worship */}
+        {/* Sunday Morning Worship */}
         <TouchableOpacity
           style={styles.toggleRow}
-          onPress={() => setHasSundayWorship(!hasSundayWorship)}
+          onPress={() => setHasSundayMorningWorship(!hasSundayMorningWorship)}
         >
-          <View style={[styles.checkbox, hasSundayWorship && styles.checkboxChecked]}>
-            {hasSundayWorship && <Ionicons name="checkmark" size={14} color={Colors.light} />}
+          <View style={[styles.checkbox, hasSundayMorningWorship && styles.checkboxChecked]}>
+            {hasSundayMorningWorship && <Ionicons name="checkmark" size={14} color={Colors.light} />}
           </View>
-          <Text style={styles.toggleLabel}>Include Sunday Worship Times</Text>
+          <Text style={styles.toggleLabel}>Include Sunday Morning Worship Service</Text>
         </TouchableOpacity>
 
-        {hasSundayWorship && (
+        {hasSundayMorningWorship && (
           <View style={styles.indentedFields}>
             <Text style={styles.subLabel}>Morning Worship Service</Text>
             <View style={styles.timeRow}>
@@ -611,7 +799,22 @@ export default function SetupWizard() {
                 <TextInput style={styles.formInput} value={sundayMorningEnd} onChangeText={setSundayMorningEnd} />
               </View>
             </View>
+          </View>
+        )}
 
+        {/* Sunday Evening Worship */}
+        <TouchableOpacity
+          style={styles.toggleRow}
+          onPress={() => setHasSundayEveningWorship(!hasSundayEveningWorship)}
+        >
+          <View style={[styles.checkbox, hasSundayEveningWorship && styles.checkboxChecked]}>
+            {hasSundayEveningWorship && <Ionicons name="checkmark" size={14} color={Colors.light} />}
+          </View>
+          <Text style={styles.toggleLabel}>Include Sunday Evening Worship Service (Separate Tick)</Text>
+        </TouchableOpacity>
+
+        {hasSundayEveningWorship && (
+          <View style={styles.indentedFields}>
             <Text style={styles.subLabel}>Evening Worship Service</Text>
             <View style={styles.timeRow}>
               <View style={[styles.formField, { flex: 1, marginRight: Spacing.md }]}>
@@ -829,47 +1032,105 @@ export default function SetupWizard() {
               />
             </View>
 
+            {/* Class Day of Week & Times Input */}
             <View style={styles.timeRow}>
               <View style={[styles.formField, { flex: 1, marginRight: Spacing.md }]}>
-                <Text style={styles.fieldLabel}>Test No / Name</Text>
+                <Text style={styles.fieldLabel}>Class Day of Week (0-6)</Text>
                 <TextInput
                   style={styles.formInput}
-                  value={subj.testNo}
-                  onChangeText={(val) => updateSubjectField(index, 'testNo', val)}
-                  placeholder="Test 1"
+                  value={subj.classDay}
+                  onChangeText={(val) => updateSubjectField(index, 'classDay', val)}
+                  keyboardType="numeric"
+                  placeholder="1 (Monday)"
+                />
+              </View>
+              <View style={[styles.formField, { flex: 1, marginRight: Spacing.md }]}>
+                <Text style={styles.fieldLabel}>Start Time (HH:mm)</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={subj.classStartTime}
+                  onChangeText={(val) => updateSubjectField(index, 'classStartTime', val)}
+                  placeholder="08:00"
                 />
               </View>
               <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={styles.fieldLabel}>Test Date (YYYY-MM-DD)</Text>
+                <Text style={styles.fieldLabel}>Finish Time (HH:mm)</Text>
                 <TextInput
                   style={styles.formInput}
-                  value={subj.testDate}
-                  onChangeText={(val) => updateSubjectField(index, 'testDate', val)}
-                  placeholder="2026-09-15"
+                  value={subj.classEndTime}
+                  onChangeText={(val) => updateSubjectField(index, 'classEndTime', val)}
+                  placeholder="10:00"
                 />
               </View>
             </View>
 
-            <View style={styles.timeRow}>
-              <View style={[styles.formField, { flex: 1, marginRight: Spacing.md }]}>
-                <Text style={styles.fieldLabel}>Assignment / Research Title</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={subj.assignmentTitle}
-                  onChangeText={(val) => updateSubjectField(index, 'assignmentTitle', val)}
-                  placeholder="Grace Reflection Essay"
-                />
-              </View>
-              <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={styles.fieldLabel}>Due Date (YYYY-MM-DD)</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={subj.assignmentDate}
-                  onChangeText={(val) => updateSubjectField(index, 'assignmentDate', val)}
-                  placeholder="2026-10-10"
-                />
-              </View>
+            <View style={styles.formField}>
+              <Text style={styles.fieldLabel}>Number of Tests</Text>
+              <TextInput
+                style={styles.formInput}
+                value={subj.numTests}
+                onChangeText={(val) => handleTestsCountChange(index, val)}
+                keyboardType="numeric"
+                placeholder="1"
+              />
             </View>
+
+            {subj.tests.map((test, testIdx) => (
+              <View key={`test-${testIdx}`} style={[styles.timeRow, { marginBottom: Spacing.sm }]}>
+                <View style={[styles.formField, { flex: 1, marginRight: Spacing.md }]}>
+                  <Text style={styles.fieldLabel}>Test #{testIdx + 1} Name</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={test.testNo}
+                    onChangeText={(val) => updateTestField(index, testIdx, 'testNo', val)}
+                    placeholder="Test 1"
+                  />
+                </View>
+                <View style={[styles.formField, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>Date (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={test.testDate}
+                    onChangeText={(val) => updateTestField(index, testIdx, 'testDate', val)}
+                    placeholder="2026-09-15"
+                  />
+                </View>
+              </View>
+            ))}
+
+            <View style={styles.formField}>
+              <Text style={styles.fieldLabel}>Number of Assignments</Text>
+              <TextInput
+                style={styles.formInput}
+                value={subj.numAssignments}
+                onChangeText={(val) => handleAssignmentsCountChange(index, val)}
+                keyboardType="numeric"
+                placeholder="1"
+              />
+            </View>
+
+            {subj.assignments.map((assign, assignIdx) => (
+              <View key={`assign-${assignIdx}`} style={[styles.timeRow, { marginBottom: Spacing.sm }]}>
+                <View style={[styles.formField, { flex: 1, marginRight: Spacing.md }]}>
+                  <Text style={styles.fieldLabel}>Assignment #{assignIdx + 1} Title</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={assign.assignmentTitle}
+                    onChangeText={(val) => updateAssignmentField(index, assignIdx, 'assignmentTitle', val)}
+                    placeholder="Grace Reflection Essay"
+                  />
+                </View>
+                <View style={[styles.formField, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>Due Date (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={assign.assignmentDate}
+                    onChangeText={(val) => updateAssignmentField(index, assignIdx, 'assignmentDate', val)}
+                    placeholder="2026-10-10"
+                  />
+                </View>
+              </View>
+            ))}
           </BiblicalCard>
         ))}
 
