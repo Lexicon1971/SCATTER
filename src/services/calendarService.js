@@ -1,7 +1,5 @@
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "../firebase";
-
-import { Timestamp } from "firebase/firestore";
 
 /**
  * Adds a calendar event to the Firestore database.
@@ -36,6 +34,15 @@ export async function addCalendarEvent(event) {
 }
 
 /**
+ * Alias for addCalendarEvent. Adds a calendar event to the Firestore database.
+ * @param {Object} eventData - The calendar event data
+ * @returns {Promise<Object>} The added event containing the generated Firestore document ID.
+ */
+export async function addEvent(eventData) {
+  return addCalendarEvent(eventData);
+}
+
+/**
  * Fetches events for a specific user within a date range (start date to end date).
  * @param {string} userId - The ID of the user.
  * @param {Date|string} startDate - The start of the date range.
@@ -64,4 +71,15 @@ export async function fetchEvents(userId, startDate, endDate) {
     console.error("Error fetching calendar events: ", error);
     throw error;
   }
+}
+
+/**
+ * Alias for fetchEvents. Fetches events for a specific user within a date range (start date to end date).
+ * @param {string} userId - The ID of the user.
+ * @param {Date|string} startDate - The start of the date range.
+ * @param {Date|string} endDate - The end of the date range.
+ * @returns {Promise<Array<Object>>} A list of matching calendar events.
+ */
+export async function getEventsForUserInDateRange(userId, startDate, endDate) {
+  return fetchEvents(userId, startDate, endDate);
 }
