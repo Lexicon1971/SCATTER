@@ -9,6 +9,7 @@ import CalendarScreen from './src/screens/CalendarScreen';
 import TasksScreen from './src/screens/TasksScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SetupWizard from './src/components/SetupWizard';
+import AuthScreen from './src/components/AuthScreen';
 import { AudioMuteService } from './src/services/AudioMuteService';
 import { useAppStore } from './src/store';
 import { Colors } from './src/styles/theme';
@@ -34,22 +35,35 @@ export default function App() {
     if (Platform.OS !== 'web') {
       AudioMuteService.initialize();
     } else {
-      // Set document title and book icon on web platform
-      document.title = "SCATTER - Seminary Tracker v1.5";
+      // Set document title and book icon on web platform safely for TypeScript env without DOM library
+      try {
+        const doc = (globalThis as any).document;
+        if (doc) {
+          doc.title = "SCATTER - Seminary Tracker v2.0";
 
-      // Remove any existing favicon links to prevent duplicate icon requests/errors
-      const existingIcons = document.querySelectorAll("link[rel*='icon']");
-      existingIcons.forEach(icon => icon.parentNode?.removeChild(icon));
+          // Remove any existing favicon links to prevent duplicate icon requests/errors
+          const existingIcons = doc.querySelectorAll("link[rel*='icon']");
+          existingIcons.forEach((icon: any) => icon.parentNode?.removeChild(icon));
 
-      const link = document.createElement('link');
-      link.type = 'image/svg+xml';
-      link.rel = 'shortcut icon';
-      link.href = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%238B6F47"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm16 0h-7V6h7v12z"/><path d="M6 9h3v2H6zm8 0h3v2H14zm-8 4h3v2H6zm8 0h3v2H14z"/></svg>';
-      document.getElementsByTagName('head')[0].appendChild(link);
+          const link = doc.createElement('link');
+          link.type = 'image/svg+xml';
+          link.rel = 'shortcut icon';
+          link.href = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%238B6F47"><path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM4 18V6h7v12H4zm16 0h-7V6h7v12z"/><path d="M6 9h3v2H6zm8 0h3v2H14zm-8 4h3v2H6zm8 0h3v2H14z"/></svg>';
+          doc.getElementsByTagName('head')[0].appendChild(link);
+        }
+      } catch (err) {
+        // Safe fallback
+      }
     }
   }, []);
 
-  if (store.semesters.length === 0) {
+  // 1. Initial Authentication Guard
+  if (!store.isAuthenticated) {
+    return <AuthScreen />;
+  }
+
+  // 2. Setup Wizard Guard (Either new instance or explicitly triggered)
+  if (store.semesters.length === 0 || store.isSetupWizardActive) {
     return <SetupWizard />;
   }
 

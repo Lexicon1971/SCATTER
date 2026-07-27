@@ -31,7 +31,7 @@ export interface ClassSession {
 
 export interface Assignment {
   id: string;
-  courseId: string;
+  courseId?: string; // Optional if not connected to a course
   title: string;
   description?: string;
   dueDate: Date;
@@ -45,14 +45,15 @@ export interface Assignment {
 
 export interface Exam {
   id: string;
-  courseId: string;
+  courseId?: string; // Optional if not connected to a course
   title: string;
   description?: string;
   scheduledDate: Date;
   startTime: string; // HH:mm format
   endTime: string; // HH:mm format
   location?: string;
-  examType: 'midterm' | 'final' | 'quiz' | 'test';
+  examType: 'midterm' | 'final' | 'quiz' | 'test'; // "Test\Exam" type
+  scopeOfContent?: string; // New field for scope of content
   reminderDays: number; // Days before exam (default 7)
   createdAt: Date;
   updatedAt: Date;
@@ -61,18 +62,20 @@ export interface Exam {
 export interface DevotionalTime {
   id: string;
   semesterId: string;
-  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  dayOfWeek?: number; // 0-6 (Sunday-Saturday), optional for ad hoc / conventions
+  date?: Date; // Specific date for ad hoc
   startTime: string; // HH:mm format
   endTime: string; // HH:mm format
   title: string;
   notes?: string;
+  type: 'morning' | 'evening' | 'prayer_meeting' | 'mens_meeting' | 'sunday_worship' | 'adhoc' | 'lunch_tea' | 'study_break';
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface RequiredReading {
   id: string;
-  courseId: string;
+  courseId?: string; // Optional if not connected
   title: string;
   author?: string;
   dueDate: Date;
@@ -101,4 +104,9 @@ export interface AudioMuteSchedule {
   muteType: 'silent' | 'vibrate';
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface User {
+  name: string;
+  email: string;
 }

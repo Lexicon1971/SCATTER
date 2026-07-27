@@ -1,7 +1,19 @@
 import create from 'zustand';
-import { Semester, Course, Assignment, Exam, DevotionalTime, RequiredReading, ClassSession } from '../types';
+import { Semester, Course, Assignment, Exam, DevotionalTime, RequiredReading, ClassSession, User } from '../types';
 
 interface AppState {
+  // App Version
+  appVersion: string;
+  setAppVersion: (version: string) => void;
+
+  // Authentication State
+  user: User | null;
+  isAuthenticated: boolean;
+  rememberMe: boolean;
+  registerUser: (name: string, email: string, remember: boolean) => void;
+  signInUser: (email: string, remember: boolean) => boolean;
+  signOutUser: () => void;
+
   // Semesters
   semesters: Semester[];
   addSemester: (semester: Semester) => void;
@@ -52,266 +64,58 @@ interface AppState {
   deleteReading: (id: string) => void;
   getReadingsByCourse: (courseId: string) => RequiredReading[];
 
-  // App Version (dynamic state)
-  appVersion: string;
-  setAppVersion: (version: string) => void;
+  // Academic Goal Credits
+  creditsGoal: number;
+  manualCreditsAchieved: number;
+  setCreditsGoal: (credits: number) => void;
+  setManualCreditsAchieved: (credits: number) => void;
+
+  // Setup mode active triggers SetupWizard manually
+  isSetupWizardActive: boolean;
+  setSetupWizardActive: (active: boolean) => void;
 
   // Data Management
   clearAllData: () => void;
 }
 
-const getDateOffset = (days: number, hour: number = 9, minute: number = 0) => {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setHours(hour, minute, 0, 0);
-  return d;
-};
-
-const seedSemesterId = 'semester-1';
-const seedSemesters: Semester[] = [
-  {
-    id: seedSemesterId,
-    name: 'Fall Semester 2026',
-    startDate: getDateOffset(-10),
-    endDate: getDateOffset(100),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-const seedCourses: Course[] = [
-  {
-    id: 'course-1',
-    semesterId: seedSemesterId,
-    name: 'ST-601: Covenant Theology',
-    instructor: 'Dr. Francis Turretin',
-    credits: 3,
-    color: '#2C3E50', // Deep Navy
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'course-2',
-    semesterId: seedSemesterId,
-    name: 'NT-502: Pauline Epistles',
-    instructor: 'Dr. Herman Ridderbos',
-    credits: 4,
-    color: '#8B6F47', // Warm Bronze
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'course-3',
-    semesterId: seedSemesterId,
-    name: 'CH-501: Reformed Ecclesiology',
-    instructor: 'Dr. John Knox',
-    credits: 3,
-    color: '#6B8E23', // Olive (success style)
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-const seedClassSessions: ClassSession[] = [
-  {
-    id: 'class-1',
-    courseId: 'course-1',
-    dayOfWeek: 2, // Tuesday
-    startTime: '09:00',
-    endTime: '10:30',
-    location: 'Calvin Hall 102',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'class-2',
-    courseId: 'course-2',
-    dayOfWeek: 3, // Wednesday
-    startTime: '13:00',
-    endTime: '14:30',
-    location: 'Bavinck Library',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'class-3',
-    courseId: 'course-3',
-    dayOfWeek: 1, // Monday
-    startTime: '10:00',
-    endTime: '11:30',
-    location: 'Knox Chapel',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-const seedAssignments: Assignment[] = [
-  {
-    id: 'assign-1',
-    courseId: 'course-1',
-    title: "Reflections on Turretin's Covenant of Grace",
-    description: "Write a 3-page theological analysis of Francis Turretin's distinction between the Covenant of Redemption and the Covenant of Grace.",
-    dueDate: getDateOffset(2),
-    dueTime: '23:59',
-    type: 'homework',
-    status: 'pending',
-    reminderDays: 3,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'assign-2',
-    courseId: 'course-2',
-    title: 'Exegesis Paper: Romans 9:14-24',
-    description: 'Provide an exegetical study focusing on divine sovereignty, election, and the potter-clay metaphor in its Pauline context.',
-    dueDate: getDateOffset(12),
-    dueTime: '17:00',
-    type: 'essay',
-    status: 'in-progress',
-    reminderDays: 7,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'assign-3',
-    courseId: 'course-3',
-    title: 'Reflection Paper on Presbyterian Polity',
-    description: 'Examine the biblical arguments for church courts (sessions, presbyteries, synods) and compare them with episcopal governance.',
-    dueDate: getDateOffset(5),
-    dueTime: '09:00',
-    type: 'homework',
-    status: 'pending',
-    reminderDays: 2,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-const seedExams: Exam[] = [
-  {
-    id: 'exam-1',
-    courseId: 'course-1',
-    title: 'Quiz 1: Covenant of Redemption',
-    description: 'Covers WCF Chapter 7 and Turretin Locus XII.',
-    scheduledDate: getDateOffset(1),
-    startTime: '09:00',
-    endTime: '09:30',
-    location: 'Calvin Hall 102',
-    examType: 'quiz',
-    reminderDays: 1,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'exam-2',
-    courseId: 'course-2',
-    title: 'Midterm Exam: Pauline Hermeneutics',
-    description: 'Comprehensive exam on Ridleybos Chapters 1-6 and lecture notes.',
-    scheduledDate: getDateOffset(8),
-    startTime: '13:00',
-    endTime: '15:00',
-    location: 'Bavinck Library',
-    examType: 'midterm',
-    reminderDays: 7,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-const seedDevotionalTimes: DevotionalTime[] = [
-  {
-    id: 'devotion-1',
-    semesterId: seedSemesterId,
-    dayOfWeek: 1, // Monday
-    startTime: '07:00',
-    endTime: '07:30',
-    title: 'Morning Liturgy & Intercession',
-    notes: 'Contemplate Westminster Shorter Catechism and pray for the church.',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'devotion-2',
-    semesterId: seedSemesterId,
-    dayOfWeek: 2, // Tuesday
-    startTime: '07:00',
-    endTime: '07:30',
-    title: 'Morning Liturgy & Intercession',
-    notes: 'Contemplate Westminster Shorter Catechism and pray for the church.',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'devotion-3',
-    semesterId: seedSemesterId,
-    dayOfWeek: 3, // Wednesday
-    startTime: '07:00',
-    endTime: '07:30',
-    title: 'Morning Liturgy & Intercession',
-    notes: 'Contemplate Westminster Shorter Catechism and pray for the church.',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'devotion-4',
-    semesterId: seedSemesterId,
-    dayOfWeek: 4, // Thursday
-    startTime: '07:00',
-    endTime: '07:30',
-    title: 'Morning Liturgy & Intercession',
-    notes: 'Contemplate Westminster Shorter Catechism and pray for the church.',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'devotion-5',
-    semesterId: seedSemesterId,
-    dayOfWeek: 5, // Friday
-    startTime: '07:00',
-    endTime: '07:30',
-    title: 'Morning Liturgy & Intercession',
-    notes: 'Contemplate Westminster Shorter Catechism and pray for the church.',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-const seedReadings: RequiredReading[] = [
-  {
-    id: 'reading-1',
-    courseId: 'course-1',
-    title: "Calvin's Institutes: Book II, Chapters 1-4",
-    author: 'John Calvin',
-    dueDate: getDateOffset(3),
-    status: 'in-progress',
-    pages: 80,
-    progress: 25,
-    reminderDays: 1,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'reading-2',
-    courseId: 'course-2',
-    title: 'Paul and the Power of Grace',
-    author: 'John M.G. Barclay',
-    dueDate: getDateOffset(10),
-    status: 'not-started',
-    pages: 150,
-    progress: 0,
-    reminderDays: 3,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
 export const useAppStore = create<AppState>((set, get) => ({
-  // App Version
-  appVersion: 'v1.5', // Current default version
+  // App Version (upgraded to v2.0.0 per enhancement request)
+  appVersion: 'v2.0.0',
   setAppVersion: (version) => set({ appVersion: version }),
 
-  // Semesters
-  semesters: seedSemesters,
+  // Authentication State
+  user: null,
+  isAuthenticated: false,
+  rememberMe: false,
+
+  registerUser: (name, email, remember) => {
+    set({
+      user: { name, email },
+      isAuthenticated: true,
+      rememberMe: remember,
+    });
+  },
+
+  signInUser: (email, remember) => {
+    // Basic sign in logic. For mockup purposes, if there is a registered user, matches email, or accepts any input
+    const registeredUser = get().user || { name: 'Seminary Student', email };
+    set({
+      user: registeredUser,
+      isAuthenticated: true,
+      rememberMe: remember,
+    });
+    return true;
+  },
+
+  signOutUser: () => {
+    set({
+      isAuthenticated: false,
+      rememberMe: false,
+    });
+  },
+
+  // Semesters (Initially clean!)
+  semesters: [],
   addSemester: (semester) => set((state) => ({ semesters: [...state.semesters, semester] })),
   updateSemester: (id, updates) =>
     set((state) => ({
@@ -327,8 +131,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     return semesters.find((s) => s.startDate <= now && now <= s.endDate) || semesters[0] || null;
   },
 
-  // Courses
-  courses: seedCourses,
+  // Courses (Initially clean!)
+  courses: [],
   addCourse: (course) => set((state) => ({ courses: [...state.courses, course] })),
   updateCourse: (id, updates) =>
     set((state) => ({
@@ -340,8 +144,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     })),
   getCoursesBySemester: (semesterId) => get().courses.filter((c) => c.semesterId === semesterId),
 
-  // Class Sessions
-  classSessions: seedClassSessions,
+  // Class Sessions (Initially clean!)
+  classSessions: [],
   addClassSession: (session) => set((state) => ({ classSessions: [...state.classSessions, session] })),
   updateClassSession: (id, updates) =>
     set((state) => ({
@@ -354,8 +158,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   getClassSessionsByCourse: (courseId) =>
     get().classSessions.filter((s) => s.courseId === courseId),
 
-  // Assignments
-  assignments: seedAssignments,
+  // Assignments (Initially clean!)
+  assignments: [],
   addAssignment: (assignment) => set((state) => ({ assignments: [...state.assignments, assignment] })),
   updateAssignment: (id, updates) =>
     set((state) => ({
@@ -375,8 +179,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   },
 
-  // Exams
-  exams: seedExams,
+  // Exams (Initially clean!)
+  exams: [],
   addExam: (exam) => set((state) => ({ exams: [...state.exams, exam] })),
   updateExam: (id, updates) =>
     set((state) => ({
@@ -395,8 +199,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       .sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime());
   },
 
-  // Devotional Times
-  devotionalTimes: seedDevotionalTimes,
+  // Devotional Times (Initially clean!)
+  devotionalTimes: [],
   addDevotionalTime: (time) =>
     set((state) => ({ devotionalTimes: [...state.devotionalTimes, time] })),
   updateDevotionalTime: (id, updates) =>
@@ -410,8 +214,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       devotionalTimes: state.devotionalTimes.filter((d) => d.id !== id),
     })),
 
-  // Required Readings
-  readings: seedReadings,
+  // Required Readings (Initially clean!)
+  readings: [],
   addReading: (reading) => set((state) => ({ readings: [...state.readings, reading] })),
   updateReading: (id, updates) =>
     set((state) => ({
@@ -423,6 +227,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     })),
   getReadingsByCourse: (courseId) => get().readings.filter((r) => r.courseId === courseId),
 
+  // Academic Credits
+  creditsGoal: 120,
+  manualCreditsAchieved: 0,
+  setCreditsGoal: (credits) => set({ creditsGoal: credits }),
+  setManualCreditsAchieved: (credits) => set({ manualCreditsAchieved: credits }),
+
+  // Setup wizard manually active
+  isSetupWizardActive: false,
+  setSetupWizardActive: (active) => set({ isSetupWizardActive: active }),
+
   // Data Management
   clearAllData: () => set({
     semesters: [],
@@ -432,5 +246,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     exams: [],
     devotionalTimes: [],
     readings: [],
+    manualCreditsAchieved: 0,
   }),
 }));
