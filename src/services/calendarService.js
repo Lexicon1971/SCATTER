@@ -1,15 +1,34 @@
 import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "../firebase";
 
+import { Timestamp } from "firebase/firestore";
+
 /**
  * Adds a calendar event to the Firestore database.
- * @param {Object} event - The calendar event data (e.g., { userId, title, date, etc. })
+ * Optimized structure:
+ * {
+ *   "userId": "user_12345",
+ *   "title": "Dentist Appointment",
+ *   "description": "Routine checkup",
+ *   "startDate": Timestamp,
+ *   "endDate": Timestamp,
+ *   "category": "personal"
+ * }
+ * @param {Object} event - The calendar event data
  * @returns {Promise<Object>} The added event containing the generated Firestore document ID.
  */
 export async function addCalendarEvent(event) {
   try {
-    const docRef = await addDoc(collection(db, "events"), event);
-    return { id: docRef.id, ...event };
+    const formattedEvent = {
+      userId: event.userId,
+      title: event.title || "",
+      description: event.description || "",
+      startDate: event.startDate instanceof Date ? Timestamp.fromDate(event.startDate) : event.startDate,
+      endDate: event.endDate instanceof Date ? Timestamp.fromDate(event.endDate) : event.endDate,
+      category: event.category || "personal"
+    };
+    const docRef = await addDoc(collection(db, "events"), formattedEvent);
+    return { id: docRef.id, ...formattedEvent };
   } catch (error) {
     console.error("Error adding calendar event: ", error);
     throw error;
@@ -25,12 +44,15 @@ export async function addCalendarEvent(event) {
  */
 export async function fetchEvents(userId, startDate, endDate) {
   try {
+    const startTimestamp = startDate instanceof Date ? Timestamp.fromDate(startDate) : startDate;
+    const endTimestamp = endDate instanceof Date ? Timestamp.fromDate(endDate) : endDate;
+
     const eventsRef = collection(db, "events");
     const q = query(
       eventsRef,
       where("userId", "==", userId),
-      where("date", ">=", startDate),
-      where("date", "<=", endDate)
+      where("startDate", ">=", startTimestamp),
+      where("startDate", "<=", endTimestamp)
     );
     const querySnapshot = await getDocs(q);
     const events = [];

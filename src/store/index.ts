@@ -57,6 +57,11 @@ interface AppState {
   updateDevotionalTime: (id: string, time: Partial<DevotionalTime>) => void;
   deleteDevotionalTime: (id: string) => void;
 
+  // Study Breaks
+  studyBreaks: StudyBreak[];
+  addStudyBreak: (studyBreak: StudyBreak) => void;
+  deleteStudyBreak: (id: string) => void;
+
   // Required Readings
   readings: RequiredReading[];
   addReading: (reading: RequiredReading) => void;
@@ -69,6 +74,15 @@ interface AppState {
   manualCreditsAchieved: number;
   setCreditsGoal: (credits: number) => void;
   setManualCreditsAchieved: (credits: number) => void;
+
+  // Lunch and Tea global configuration toggles
+  lunchTeaBreaksEnabled: boolean;
+  setLunchTeaBreaksEnabled: (enabled: boolean) => void;
+  lunchStart: string;
+  lunchEnd: string;
+  teaStart: string;
+  teaEnd: string;
+  setLunchTeaTimes: (lunchStart: string, lunchEnd: string, teaStart: string, teaEnd: string) => void;
 
   // Setup mode active triggers SetupWizard manually
   isSetupWizardActive: boolean;
@@ -214,6 +228,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       devotionalTimes: state.devotionalTimes.filter((d) => d.id !== id),
     })),
 
+  // Study Breaks
+  studyBreaks: [],
+  addStudyBreak: (studyBreak) => set((state) => ({ studyBreaks: [...state.studyBreaks, studyBreak] })),
+  deleteStudyBreak: (id) => set((state) => ({ studyBreaks: state.studyBreaks.filter((s) => s.id !== id) })),
+
   // Required Readings (Initially clean!)
   readings: [],
   addReading: (reading) => set((state) => ({ readings: [...state.readings, reading] })),
@@ -233,6 +252,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   setCreditsGoal: (credits) => set({ creditsGoal: credits }),
   setManualCreditsAchieved: (credits) => set({ manualCreditsAchieved: credits }),
 
+  // Lunch and Tea global configuration toggles
+  lunchTeaBreaksEnabled: true,
+  setLunchTeaBreaksEnabled: (enabled) => set({ lunchTeaBreaksEnabled: enabled }),
+  lunchStart: '12:00',
+  lunchEnd: '13:00',
+  teaStart: '15:00',
+  teaEnd: '15:30',
+  setLunchTeaTimes: (lunchStart, lunchEnd, teaStart, teaEnd) => set({ lunchStart, lunchEnd, teaStart, teaEnd }),
+
   // Setup wizard manually active
   isSetupWizardActive: false,
   setSetupWizardActive: (active) => set({ isSetupWizardActive: active }),
@@ -245,6 +273,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     assignments: [],
     exams: [],
     devotionalTimes: [],
+    studyBreaks: [],
     readings: [],
     manualCreditsAchieved: 0,
   }),

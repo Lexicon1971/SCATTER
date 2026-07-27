@@ -113,9 +113,21 @@ export default function CalendarScreen() {
     );
     dayEvents.push(...dayExams.map((e) => ({ ...e, type: 'exam' })));
 
-    // Classes scheduled for this day of week
-    const dayClasses = store.classSessions.filter((c) => c.dayOfWeek === dayOfWeek);
-    dayEvents.push(...dayClasses.map((c) => ({ ...c, type: 'class' })));
+    // Check if the selected date falls within any Study Break (duration in days during which no classes are held)
+    const isUnderStudyBreak = store.studyBreaks.some((sb) => {
+      const start = new Date(sb.startDate);
+      const end = new Date(sb.endDate);
+      // set hours to 0 to compare dates only
+      start.setHours(0,0,0,0);
+      end.setHours(23,59,59,999);
+      return selectedDate >= start && selectedDate <= end;
+    });
+
+    // Classes scheduled for this day of week (suppressed if under study break)
+    if (!isUnderStudyBreak) {
+      const dayClasses = store.classSessions.filter((c) => c.dayOfWeek === dayOfWeek);
+      dayEvents.push(...dayClasses.map((c) => ({ ...c, type: 'class' })));
+    }
 
     // Devotional times scheduled for this day of week or specific adhoc date
     const dayDevotions = store.devotionalTimes.filter((d) => {
@@ -126,14 +138,42 @@ export default function CalendarScreen() {
     });
     dayEvents.push(...dayDevotions.map((d) => ({ ...d, type: 'devotion' })));
 
+    // Lunch and Tea breaks are added ONLY if there are matching classes being taken that day
+    const hasClassesToday = !isUnderStudyBreak && store.classSessions.some((c) => c.dayOfWeek === dayOfWeek);
+    if (store.lunchTeaBreaksEnabled && hasClassesToday) {
+      dayEvents.push({
+        id: `lunch-dynamic-${selectedDate.toDateString()}`,
+        title: 'Lunch Break & Fellowship',
+        startTime: store.lunchStart,
+        endTime: store.lunchEnd,
+        type: 'devotion',
+        notes: 'Lunch at Seminary',
+      });
+      dayEvents.push({
+        id: `tea-dynamic-${selectedDate.toDateString()}`,
+        title: 'Afternoon Tea Break',
+        startTime: store.teaStart,
+        endTime: store.teaEnd,
+        type: 'devotion',
+        notes: 'Afternoon Tea at Seminary',
+      });
+    }
+
     // Required readings due on this date
     const dayReadings = store.readings.filter(
       (r) => new Date(r.dueDate).toDateString() === selectedDate.toDateString()
     );
     dayEvents.push(...dayReadings.map((r) => ({ ...r, type: 'reading' })));
 
-    setEvents(dayEvents);
-  }, [selectedDate, store.assignments, store.exams, store.classSessions, store.devotionalTimes, store.readings]);
+    // Sort all diary instances each day by time (morning to afternoon)
+    const sortedDayEvents = dayEvents.sort((a, b) => {
+      const timeA = a.startTime || a.dueTime || '00:00';
+      const timeB = b.startTime || b.dueTime || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+
+    setEvents(sortedDayEvents);
+  }, [selectedDate, store.assignments, store.exams, store.classSessions, store.devotionalTimes, store.readings, store.studyBreaks, store.lunchTeaBreaksEnabled, store.lunchStart, store.lunchEnd, store.teaStart, store.teaEnd]);
 
   const getWeekDays = (date: Date) => {
     const start = new Date(date);
@@ -729,7 +769,12 @@ export default function CalendarScreen() {
       <Modal visible={deleteConfirmVisible} animationType="fade" transparent>
         <View style={styles.deleteModalOverlay}>
           <BiblicalCard variant="outlined" style={styles.deleteModalContent}>
-            <Text style={styles.deleteModalTitle}>Confirm Deletion</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={styles.deleteModalTitle}>Confirm Deletion</Text>
+              <TouchableOpacity onPress={() => setDeleteConfirmVisible(false)}>
+                <Ionicons name="close" size={20} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
             <BiblicalDivider />
             <Text style={styles.deleteModalText}>
               Are you sure you want to completely delete this item?

@@ -657,7 +657,12 @@ export default function TasksScreen() {
       <Modal visible={progressModalVisible} animationType="fade" transparent>
         <View style={styles.progressModalOverlay}>
           <BiblicalCard variant="outlined" style={styles.progressModalContent}>
-            <Text style={styles.progressModalTitle}>Update Reading Progress</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={styles.progressModalTitle}>Update Reading Progress</Text>
+              <TouchableOpacity onPress={() => setProgressModalVisible(false)}>
+                <Ionicons name="close" size={20} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
             <Text style={styles.progressModalSub}>
               {selectedReading?.title}
             </Text>
@@ -693,7 +698,12 @@ export default function TasksScreen() {
       <Modal visible={deleteConfirmVisible} animationType="fade" transparent>
         <View style={styles.deleteModalOverlay}>
           <BiblicalCard variant="outlined" style={styles.deleteModalContent}>
-            <Text style={styles.deleteModalTitle}>Confirm Deletion</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={styles.deleteModalTitle}>Confirm Deletion</Text>
+              <TouchableOpacity onPress={() => setDeleteConfirmVisible(false)}>
+                <Ionicons name="close" size={20} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
             <BiblicalDivider />
             <Text style={styles.deleteModalText}>
               Are you sure you want to completely delete this item?

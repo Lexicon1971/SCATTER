@@ -68,7 +68,7 @@ export interface DevotionalTime {
   endTime: string; // HH:mm format
   title: string;
   notes?: string;
-  type: 'morning' | 'evening' | 'prayer_meeting' | 'mens_meeting' | 'sunday_worship' | 'adhoc' | 'lunch_tea' | 'study_break';
+  type: 'morning' | 'evening' | 'prayer_meeting' | 'mens_meeting' | 'sunday_worship' | 'adhoc' | 'lunch_tea' | 'study_break' | 'mentorship' | 'class_devotion';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -104,6 +104,13 @@ export interface AudioMuteSchedule {
   muteType: 'silent' | 'vibrate';
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface StudyBreak {
+  id: string;
+  name: string;
+  startDate: Date; // date range when no classes are held
+  endDate: Date;
 }
 
 export interface User {
