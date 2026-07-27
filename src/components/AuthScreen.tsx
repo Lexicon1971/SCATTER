@@ -8,11 +8,12 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store';
 import { Colors, Spacing, BorderRadius, Decorations } from '../styles/theme';
-import { BiblicalHeader, BiblicalCard } from './BiblicalComponents';
+import { BiblicalCard } from './BiblicalComponents';
 
 export default function AuthScreen() {
   const store = useAppStore();
@@ -21,8 +22,9 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!email || !password) {
       Alert.alert('Verification Required', 'Please fill in both email and password.');
       return;
@@ -32,11 +34,18 @@ export default function AuthScreen() {
       return;
     }
 
-    if (isRegistering) {
-      store.registerUser(name, email, rememberMe);
-      Alert.alert('Grace be with you', `Account registered for ${name}!`);
-    } else {
-      store.signInUser(email, rememberMe);
+    setIsLoading(true);
+    try {
+      if (isRegistering) {
+        await store.registerUser(name, email, password, rememberMe);
+        Alert.alert('Grace be with you', `Account registered for ${name}!`);
+      } else {
+        await store.signInUser(email, password, rememberMe);
+      }
+    } catch (error: any) {
+      Alert.alert('Authentication Error', error.message || 'An error occurred during authentication.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -66,6 +75,7 @@ export default function AuthScreen() {
                 onChangeText={setName}
                 placeholder="e.g. John Calvin"
                 placeholderTextColor={Colors.textTertiary}
+                editable={!isLoading}
               />
             </View>
           )}
@@ -80,6 +90,7 @@ export default function AuthScreen() {
               placeholderTextColor={Colors.textTertiary}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!isLoading}
             />
           </View>
 
@@ -92,14 +103,16 @@ export default function AuthScreen() {
               placeholder="••••••••"
               placeholderTextColor={Colors.textTertiary}
               secureTextEntry
+              editable={!isLoading}
             />
           </View>
 
           {/* Remember Me Checkbox */}
           <TouchableOpacity
             style={styles.rememberRow}
-            onPress={() => setRememberMe(!rememberMe)}
+            onPress={() => !isLoading && setRememberMe(!rememberMe)}
             activeOpacity={0.8}
+            disabled={isLoading}
           >
             <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
               {rememberMe && <Ionicons name="checkmark" size={14} color={Colors.light} />}
@@ -107,17 +120,24 @@ export default function AuthScreen() {
             <Text style={styles.rememberLabel}>Remember Me on this device</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleSubmit} style={styles.submitBtn}>
-            <Text style={styles.submitBtnText}>
-              {isRegistering ? 'Register & Begin' : 'Sign In'}
-            </Text>
-            <Ionicons name="arrow-forward" size={16} color={Colors.light} style={{ marginLeft: 8 }} />
+          <TouchableOpacity onPress={handleSubmit} style={styles.submitBtn} disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator size="small" color={Colors.light} />
+            ) : (
+              <>
+                <Text style={styles.submitBtnText}>
+                  {isRegistering ? 'Register & Begin' : 'Sign In'}
+                </Text>
+                <Ionicons name="arrow-forward" size={16} color={Colors.light} style={{ marginLeft: 8 }} />
+              </>
+            )}
           </TouchableOpacity>
         </BiblicalCard>
 
         <TouchableOpacity
-          onPress={() => setIsRegistering(!isRegistering)}
+          onPress={() => !isLoading && setIsRegistering(!isRegistering)}
           style={styles.toggleBtn}
+          disabled={isLoading}
         >
           <Text style={styles.toggleBtnText}>
             {isRegistering
@@ -239,6 +259,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 48,
   },
   submitBtnText: {
     color: Colors.light,
