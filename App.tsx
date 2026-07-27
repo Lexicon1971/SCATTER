@@ -8,7 +8,9 @@ import * as Notifications from 'expo-notifications';
 import CalendarScreen from './src/screens/CalendarScreen';
 import TasksScreen from './src/screens/TasksScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import SetupWizard from './src/components/SetupWizard';
 import { AudioMuteService } from './src/services/AudioMuteService';
+import { useAppStore } from './src/store';
 import { Colors } from './src/styles/theme';
 
 const Tab = createBottomTabNavigator();
@@ -25,6 +27,8 @@ if (Platform.OS !== 'web') {
 }
 
 export default function App() {
+  const store = useAppStore();
+
   React.useEffect(() => {
     // Initialize audio mute service
     if (Platform.OS !== 'web') {
@@ -44,6 +48,10 @@ export default function App() {
       document.getElementsByTagName('head')[0].appendChild(link);
     }
   }, []);
+
+  if (store.semesters.length === 0) {
+    return <SetupWizard />;
+  }
 
   return (
     <NavigationContainer>
