@@ -91,19 +91,18 @@ export default function SetupWizard() {
   const [adHocStart, setAdHocStart] = useState('09:00');
   const [adHocEnd, setAdHocEnd] = useState('17:00');
 
-  // STEP 5: Lunch & Tea Breaks, Study Breaks
+  // STEP 5: Lunch & Tea Breaks
   const [hasBreaks, setHasBreaks] = useState(true);
   const [lunchStart, setLunchStart] = useState('12:00');
   const [lunchEnd, setLunchEnd] = useState('13:00');
   const [teaStart, setTeaStart] = useState('15:00');
   const [teaEnd, setTeaEnd] = useState('15:30');
 
-  const [hasStudyBreak, setHasStudyBreak] = useState(true);
-  const [studyBreakStart, setStudyBreakStart] = useState('10:00');
-  const [studyBreakEnd, setStudyBreakEnd] = useState('11:30');
-
-  // STEP 6: Exams Date Setup
+  // STEP 6: Exams & Study Break Date Setup
   const [examStartDate, setExamStartDate] = useState('2026-12-10');
+  const [hasStudyBreakPeriod, setHasStudyBreakPeriod] = useState(true);
+  const [studyBreakStartDate, setStudyBreakStartDate] = useState('2026-10-12');
+  const [studyBreakEndDate, setStudyBreakEndDate] = useState('2026-10-26');
 
   // STEP 7: Subjects & Modules Count & Details
   const [subjectCount, setSubjectCount] = useState('3');
@@ -382,23 +381,15 @@ export default function SetupWizard() {
       });
     }
 
-    // 5. Lunch & Tea, Study Breaks
+    // 5. Lunch & Tea, Study Breaks Period
     store.setLunchTeaBreaksEnabled(hasBreaks);
     store.setLunchTeaTimes(lunchStart, lunchEnd, teaStart, teaEnd);
-    if (hasStudyBreak) {
-      const days = [1, 2, 3, 4, 5];
-      days.forEach((day) => {
-        store.addDevotionalTime({
-          id: `studybreak-${day}-${Date.now()}`,
-          semesterId,
-          dayOfWeek: day,
-          startTime: studyBreakStart,
-          endTime: studyBreakEnd,
-          title: 'Dedicated Study Break',
-          type: 'study_break',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+    if (hasStudyBreakPeriod && studyBreakStartDate && studyBreakEndDate) {
+      store.addStudyBreak({
+        id: `studybreak-period-${Date.now()}`,
+        name: 'Administrative Study Break',
+        startDate: new Date(studyBreakStartDate),
+        endDate: new Date(studyBreakEndDate),
       });
     }
 
@@ -881,7 +872,7 @@ export default function SetupWizard() {
 
   const renderBreaksStep = () => (
     <View style={styles.stepContainer}>
-      <BiblicalHeader title="Rest & Study breaks" subtitle="Lunch, Tea, & Study blocks" />
+      <BiblicalHeader title="Rest Breaks" subtitle="Lunch & Tea blocks" />
       <ScrollView contentContainerStyle={styles.formScroll}>
         <TouchableOpacity
           style={styles.toggleRow}
@@ -921,33 +912,6 @@ export default function SetupWizard() {
           </View>
         )}
 
-        <BiblicalDivider />
-
-        <TouchableOpacity
-          style={styles.toggleRow}
-          onPress={() => setHasStudyBreak(!hasStudyBreak)}
-        >
-          <View style={[styles.checkbox, hasStudyBreak && styles.checkboxChecked]}>
-            {hasStudyBreak && <Ionicons name="checkmark" size={14} color={Colors.light} />}
-          </View>
-          <Text style={styles.toggleLabel}>Include Regular Study Breaks (Mon-Fri)</Text>
-        </TouchableOpacity>
-
-        {hasStudyBreak && (
-          <View style={styles.indentedFields}>
-            <View style={styles.timeRow}>
-              <View style={[styles.formField, { flex: 1, marginRight: Spacing.md }]}>
-                <Text style={styles.fieldLabel}>Start Time (HH:mm)</Text>
-                <TextInput style={styles.formInput} value={studyBreakStart} onChangeText={setStudyBreakStart} />
-              </View>
-              <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={styles.fieldLabel}>End Time (HH:mm)</Text>
-                <TextInput style={styles.formInput} value={studyBreakEnd} onChangeText={setStudyBreakEnd} />
-              </View>
-            </View>
-          </View>
-        )}
-
         <View style={styles.navigationRow}>
           <TouchableOpacity onPress={() => setCurrentStep(4)} style={styles.secondaryBtn}>
             <Ionicons name="arrow-back" size={16} color={Colors.primary} style={{ marginRight: 8 }} />
@@ -964,7 +928,7 @@ export default function SetupWizard() {
 
   const renderExamsStep = () => (
     <View style={styles.stepContainer}>
-      <BiblicalHeader title="Examination Season" subtitle="Configure when exams start" />
+      <BiblicalHeader title="Examination & Break Season" subtitle="Configure break and exam start dates" />
       <ScrollView contentContainerStyle={styles.formScroll}>
         <View style={styles.formField}>
           <Text style={styles.fieldLabel}>When do the exams start? (YYYY-MM-DD)</Text>
@@ -976,6 +940,43 @@ export default function SetupWizard() {
             placeholderTextColor={Colors.textTertiary}
           />
         </View>
+
+        <BiblicalDivider />
+
+        <TouchableOpacity
+          style={styles.toggleRow}
+          onPress={() => setHasStudyBreakPeriod(!hasStudyBreakPeriod)}
+        >
+          <View style={[styles.checkbox, hasStudyBreakPeriod && styles.checkboxChecked]}>
+            {hasStudyBreakPeriod && <Ionicons name="checkmark" size={14} color={Colors.light} />}
+          </View>
+          <Text style={styles.toggleLabel}>Include Seminary Study Break Period</Text>
+        </TouchableOpacity>
+
+        {hasStudyBreakPeriod && (
+          <View style={styles.indentedFields}>
+            <View style={styles.formField}>
+              <Text style={styles.fieldLabel}>Study Break Start Date (YYYY-MM-DD)</Text>
+              <TextInput
+                style={styles.formInput}
+                value={studyBreakStartDate}
+                onChangeText={setStudyBreakStartDate}
+                placeholder="e.g. 2026-10-12"
+                placeholderTextColor={Colors.textTertiary}
+              />
+            </View>
+            <View style={styles.formField}>
+              <Text style={styles.fieldLabel}>Study Break End Date (YYYY-MM-DD)</Text>
+              <TextInput
+                style={styles.formInput}
+                value={studyBreakEndDate}
+                onChangeText={setStudyBreakEndDate}
+                placeholder="e.g. 2026-10-26"
+                placeholderTextColor={Colors.textTertiary}
+              />
+            </View>
+          </View>
+        )}
 
         <View style={styles.navigationRow}>
           <TouchableOpacity onPress={() => setCurrentStep(5)} style={styles.secondaryBtn}>

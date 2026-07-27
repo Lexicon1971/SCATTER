@@ -123,14 +123,35 @@ export default function CalendarScreen() {
       return selectedDate >= start && selectedDate <= end;
     });
 
-    // Classes scheduled for this day of week (suppressed if under study break)
-    if (!isUnderStudyBreak) {
+    // Check if under exam period (from final exams block starting date to the end of current semester)
+    const currentSemester = store.getCurrentSemester();
+    const isUnderExamPeriod = !!(currentSemester && store.exams.some((e) => {
+      if (e.examType === 'final') {
+        const examStart = new Date(e.scheduledDate);
+        examStart.setHours(0,0,0,0);
+        const semesterEnd = new Date(currentSemester.endDate);
+        semesterEnd.setHours(23,59,59,999);
+        return selectedDate >= examStart && selectedDate <= semesterEnd;
+      }
+      return false;
+    }));
+
+    const isSuppressedPeriod = isUnderStudyBreak || isUnderExamPeriod;
+
+    // Classes scheduled for this day of week (suppressed if under study break or exam period)
+    if (!isSuppressedPeriod) {
       const dayClasses = store.classSessions.filter((c) => c.dayOfWeek === dayOfWeek);
       dayEvents.push(...dayClasses.map((c) => ({ ...c, type: 'class' })));
     }
 
-    // Devotional times scheduled for this day of week or specific adhoc date
+    // Devotional times scheduled for this day of week or specific adhoc date (suppress campus devotions during breaks/exams)
     const dayDevotions = store.devotionalTimes.filter((d) => {
+      if (isSuppressedPeriod) {
+        // Suppress campus/class-time activities (liturgy, prayer, mentorship, class devotion, etc.)
+        if (d.type !== 'sunday_worship' && d.type !== 'adhoc') {
+          return false;
+        }
+      }
       if (d.date) {
         return new Date(d.date).toDateString() === selectedDate.toDateString();
       }
@@ -139,7 +160,7 @@ export default function CalendarScreen() {
     dayEvents.push(...dayDevotions.map((d) => ({ ...d, type: 'devotion' })));
 
     // Lunch and Tea breaks are added ONLY if there are matching classes being taken that day
-    const hasClassesToday = !isUnderStudyBreak && store.classSessions.some((c) => c.dayOfWeek === dayOfWeek);
+    const hasClassesToday = !isSuppressedPeriod && store.classSessions.some((c) => c.dayOfWeek === dayOfWeek);
     if (store.lunchTeaBreaksEnabled && hasClassesToday) {
       dayEvents.push({
         id: `lunch-dynamic-${selectedDate.toDateString()}`,
