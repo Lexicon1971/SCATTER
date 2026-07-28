@@ -2,7 +2,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { auth } from "../firebase";
 
@@ -58,6 +59,20 @@ export async function logout() {
  */
 export function onAuthStateChangedListener(callback) {
   return onAuthStateChanged(auth, callback);
+}
+
+/**
+ * Sends a password reset email to the specified address.
+ * @param {string} email - The user's email address
+ * @returns {Promise<void>}
+ */
+export async function resetPassword(email) {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    console.error("Error sending password reset email: ", error);
+    throw error;
+  }
 }
 
 export { auth };

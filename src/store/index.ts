@@ -238,8 +238,8 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  // App Version (upgraded to v3.0 per enhancement request)
-  appVersion: 'v3.0',
+  // App Version (upgraded to v3.1 per enhancement request)
+  appVersion: 'v3.1',
   setAppVersion: (version) => set({ appVersion: version }),
 
   // Authentication State

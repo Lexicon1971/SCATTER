@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore, deserializeSchedule } from '../store';
 import { Colors, Spacing, BorderRadius, Decorations } from '../styles/theme';
 import { BiblicalHeader, BiblicalCard } from './BiblicalComponents';
-import { registerWithEmailAndPassword, loginWithEmailAndPassword } from '../services/authService';
+import { registerWithEmailAndPassword, loginWithEmailAndPassword, resetPassword } from '../services/authService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -24,6 +24,19 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert('Email Required', 'Please enter your email address to request a password reset.');
+      return;
+    }
+    try {
+      await resetPassword(email);
+      Alert.alert('Password Reset Sent', `A password reset email has been dispatched to ${email}. Please check your inbox.`);
+    } catch (err: any) {
+      Alert.alert('Reset Failed', err?.message || 'An error occurred while sending password reset email.');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -38,13 +51,35 @@ export default function AuthScreen() {
     try {
       if (isRegistering) {
         // Register user with Firebase Auth first
-        const user = await registerWithEmailAndPassword(email, password);
-        // Create user profile in Firestore & save to store
-        await store.registerUser(name, email, user.uid);
-        Alert.alert('Grace be with you', `Account registered for ${name}!`);
+        let user: any;
+        try {
+          user = await registerWithEmailAndPassword(email, password);
+        } catch (error: any) {
+          const errMessage = error?.message || '';
+          const errCode = error?.code || '';
+          if (errCode === 'auth/email-already-in-use' || errMessage.toLowerCase().includes('already in use') || errMessage.toLowerCase().includes('already exists')) {
+            Alert.alert(
+              'Already Registered',
+              'An account with this email address already exists. Would you like to sign in instead?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Go to Sign In', onPress: () => setIsRegistering(false) }
+              ]
+            );
+          } else {
+            Alert.alert('Registration Failed', errMessage || 'Unable to register user. Please retry.');
+          }
+          return;
+        }
+
+        if (user) {
+          // Create user profile in Firestore & save to store
+          await store.registerUser(name, email, user.uid);
+          Alert.alert('Grace be with you', `Account registered for ${name}!`);
+        }
       } else {
         // Login with Firebase Auth
-        let user;
+        let user: any;
         try {
           user = await loginWithEmailAndPassword(email, password);
         } catch (error: any) {
@@ -54,7 +89,11 @@ export default function AuthScreen() {
           if (errCode === 'auth/user-not-found' || errCode === 'auth/invalid-credential' || errCode === 'auth/invalid-email' || errMessage.toLowerCase().includes('not found') || errMessage.toLowerCase().includes('no user') || errMessage.toLowerCase().includes('invalid')) {
             Alert.alert(
               'Registration Required',
-              'The specified user account was not found in our records. Please register an account first to begin your theological stewardship.'
+              'The specified user account was not found in our records. Please register an account first to begin your theological stewardship.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Go to Register', onPress: () => setIsRegistering(true) }
+              ]
             );
           } else {
             Alert.alert('Verification Failed', 'Authentication failed. Please check your email/password or register a new account.');
@@ -72,7 +111,11 @@ export default function AuthScreen() {
             // Profile doc doesn't exist - user needs to register
             Alert.alert(
               'Registration Required',
-              'The specified user profile was not found in our records. Please register an account first to begin your theological stewardship.'
+              'The specified user profile was not found in our records. Please register an account first to begin your theological stewardship.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Go to Register', onPress: () => setIsRegistering(true) }
+              ]
             );
             return;
           }
@@ -163,17 +206,25 @@ export default function AuthScreen() {
             />
           </View>
 
-          {/* Remember Me Checkbox */}
-          <TouchableOpacity
-            style={styles.rememberRow}
-            onPress={() => setRememberMe(!rememberMe)}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-              {rememberMe && <Ionicons name="checkmark" size={14} color={Colors.light} />}
-            </View>
-            <Text style={styles.rememberLabel}>Remember Me on this device</Text>
-          </TouchableOpacity>
+          {/* Remember Me & Forgot Password Row */}
+          <View style={styles.rememberForgotPasswordRow}>
+            <TouchableOpacity
+              style={styles.rememberRow}
+              onPress={() => setRememberMe(!rememberMe)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                {rememberMe && <Ionicons name="checkmark" size={14} color={Colors.light} />}
+              </View>
+              <Text style={styles.rememberLabel}>Remember Me</Text>
+            </TouchableOpacity>
+
+            {!isRegistering && (
+              <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotBtn}>
+                <Text style={styles.forgotBtnText}>Forgot Password?</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           <TouchableOpacity onPress={handleSubmit} style={styles.submitBtn}>
             <Text style={styles.submitBtnText}>
@@ -277,10 +328,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.primary,
   },
+  rememberForgotPasswordRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
   rememberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.xl,
   },
   checkbox: {
     width: 20,
@@ -299,6 +355,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textPrimary,
     fontWeight: '600',
+  },
+  forgotBtn: {
+    alignSelf: 'center',
+  },
+  forgotBtnText: {
+    fontSize: 12,
+    color: Colors.secondary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   submitBtn: {
     backgroundColor: Colors.secondary,
