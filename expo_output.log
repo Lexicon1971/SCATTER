@@ -1,8 +1,7 @@
 Starting project at /app
-(node:234869) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(node:156748) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
 Starting Metro Bundler
-warning: Bundler cache is empty, rebuilding (this may take a minute)
 The following packages should be updated for best compatibility with the installed expo version:
   expo-calendar@13.0.5 - expected version: ~12.2.1
   react-native@0.73.0 - expected version: 0.73.6
@@ -13,7 +12,6 @@ The following packages should be updated for best compatibility with the install
 Your project may not work correctly until you install the correct versions of the packages.
 Waiting on http://localhost:8081
 Logs for your project will appear below.
-transform[stderr]: (node:240196) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+transform[stderr]: (node:160913) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 transform[stderr]: (Use `node --trace-deprecation ...` to show where the warning was created)
-Web Bundled 14000ms (node_modules/expo/AppEntry.js)
-Web Bundled 63ms (node_modules/expo/AppEntry.js)
+Web Bundled 16681ms (node_modules/expo/AppEntry.js)

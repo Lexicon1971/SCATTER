@@ -8,7 +8,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendPasswordResetEmail
 } from "firebase/auth";
 
 jest.mock("firebase/auth", () => ({
@@ -16,7 +17,8 @@ jest.mock("firebase/auth", () => ({
   createUserWithEmailAndPassword: jest.fn(),
   signInWithEmailAndPassword: jest.fn(),
   signOut: jest.fn(),
-  onAuthStateChanged: jest.fn()
+  onAuthStateChanged: jest.fn(),
+  sendPasswordResetEmail: jest.fn()
 }));
 
 jest.mock("../firebase", () => ({
@@ -92,6 +94,27 @@ describe("authService", () => {
       signOut.mockRejectedValueOnce(mockError);
 
       await expect(logout()).rejects.toThrow("Logout failed");
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe("resetPassword", () => {
+    it("should successfully send password reset email", async () => {
+      sendPasswordResetEmail.mockResolvedValueOnce();
+
+      const { resetPassword } = require("./authService");
+      await resetPassword("test@example.com");
+
+      expect(sendPasswordResetEmail).toHaveBeenCalledWith({}, "test@example.com");
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it("should throw an error if sendPasswordResetEmail fails", async () => {
+      const mockError = new Error("Reset failed");
+      sendPasswordResetEmail.mockRejectedValueOnce(mockError);
+
+      const { resetPassword } = require("./authService");
+      await expect(resetPassword("test@example.com")).rejects.toThrow("Reset failed");
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
   });

@@ -187,7 +187,7 @@ export default function CalendarScreen() {
     dayEvents.push(...dayReadings.map((r) => ({ ...r, type: 'reading' })));
 
     // Sort all diary instances each day by time (morning to afternoon)
-    const sortedDayEvents = dayEvents.sort((a, b) => {
+    const sortedDayEvents = dayEvents.sort((a: any, b: any) => {
       const timeA = a.startTime || a.dueTime || '00:00';
       const timeB = b.startTime || b.dueTime || '00:00';
       return timeA.localeCompare(timeB);
