@@ -6,14 +6,16 @@ import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 // Supports environment variables (REACT_APP_, EXPO_PUBLIC_, or direct) with robust default fallbacks.
+const env = typeof process !== 'undefined' ? process.env : (globalThis.process?.env || {});
+
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || process.env.EXPO_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || "AIzaSyAIutV09SNyaOmMYkOJm6IAvN926fa1rEw",
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN || "scatter-4fd45.firebaseapp.com",
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "scatter-4fd45",
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || "scatter-4fd45.firebasestorage.app",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID || "319528781999",
-  appId: process.env.REACT_APP_FIREBASE_APP_ID || process.env.EXPO_PUBLIC_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID || "1:319528781999:web:4cbeac2043b55e6bbb2c5a",
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || process.env.FIREBASE_MEASUREMENT_ID || "G-6KKJ15Q2Q7"
+  apiKey: env.REACT_APP_FIREBASE_API_KEY || env.EXPO_PUBLIC_FIREBASE_API_KEY || env.FIREBASE_API_KEY || "AIzaSyAIutV09SNyaOmMYkOJm6IAvN926fa1rEw",
+  authDomain: env.REACT_APP_FIREBASE_AUTH_DOMAIN || env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || env.FIREBASE_AUTH_DOMAIN || "scatter-4fd45.firebaseapp.com",
+  projectId: env.REACT_APP_FIREBASE_PROJECT_ID || env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || env.FIREBASE_PROJECT_ID || "scatter-4fd45",
+  storageBucket: env.REACT_APP_FIREBASE_STORAGE_BUCKET || env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || env.FIREBASE_STORAGE_BUCKET || "scatter-4fd45.firebasestorage.app",
+  messagingSenderId: env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || env.FIREBASE_MESSAGING_SENDER_ID || "319528781999",
+  appId: env.REACT_APP_FIREBASE_APP_ID || env.EXPO_PUBLIC_FIREBASE_APP_ID || env.FIREBASE_APP_ID || "1:319528781999:web:4cbeac2043b55e6bbb2c5a",
+  measurementId: env.REACT_APP_FIREBASE_MEASUREMENT_ID || env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || env.FIREBASE_MEASUREMENT_ID || "G-6KKJ15Q2Q7"
 };
 
 // Initialize Firebase

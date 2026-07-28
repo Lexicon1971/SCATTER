@@ -10,9 +10,12 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppStore } from '../store';
+import { useAppStore, deserializeSchedule } from '../store';
 import { Colors, Spacing, BorderRadius, Decorations } from '../styles/theme';
 import { BiblicalHeader, BiblicalCard } from './BiblicalComponents';
+import { registerWithEmailAndPassword, loginWithEmailAndPassword } from '../services/authService';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export default function AuthScreen() {
   const store = useAppStore();
@@ -22,7 +25,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!email || !password) {
       Alert.alert('Verification Required', 'Please fill in both email and password.');
       return;
@@ -32,11 +35,76 @@ export default function AuthScreen() {
       return;
     }
 
-    if (isRegistering) {
-      store.registerUser(name, email, rememberMe);
-      Alert.alert('Grace be with you', `Account registered for ${name}!`);
-    } else {
-      store.signInUser(email, rememberMe);
+    try {
+      if (isRegistering) {
+        // Register user with Firebase Auth first
+        const user = await registerWithEmailAndPassword(email, password);
+        // Create user profile in Firestore & save to store
+        await store.registerUser(name, email, user.uid);
+        Alert.alert('Grace be with you', `Account registered for ${name}!`);
+      } else {
+        // Login with Firebase Auth
+        let user;
+        try {
+          user = await loginWithEmailAndPassword(email, password);
+        } catch (error: any) {
+          // If user is not in database/auth, show a pop up explaining user needs to register
+          const errMessage = error?.message || '';
+          const errCode = error?.code || '';
+          if (errCode === 'auth/user-not-found' || errCode === 'auth/invalid-credential' || errCode === 'auth/invalid-email' || errMessage.toLowerCase().includes('not found') || errMessage.toLowerCase().includes('no user') || errMessage.toLowerCase().includes('invalid')) {
+            Alert.alert(
+              'Registration Required',
+              'The specified user account was not found in our records. Please register an account first to begin your theological stewardship.'
+            );
+          } else {
+            Alert.alert('Verification Failed', 'Authentication failed. Please check your email/password or register a new account.');
+          }
+          return;
+        }
+
+        if (user) {
+          // Fetch user profile from Firestore
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          let userName = 'Seminary Student';
+          if (userDoc.exists()) {
+            userName = userDoc.data()?.name || 'Seminary Student';
+          } else {
+            // Profile doc doesn't exist - user needs to register
+            Alert.alert(
+              'Registration Required',
+              'The specified user profile was not found in our records. Please register an account first to begin your theological stewardship.'
+            );
+            return;
+          }
+
+          // Fetch user schedule data from Firestore
+          const scheduleDoc = await getDoc(doc(db, "schedules", user.uid));
+          if (scheduleDoc.exists()) {
+            const data = scheduleDoc.data();
+            const deserialized = deserializeSchedule(data);
+            // Populate store with the fetched schedule data
+            store.setLoadedData({
+              user: { name: userName, email, uid: user.uid },
+              ...deserialized,
+            });
+          } else {
+            // No schedule data yet: clear store data but authenticate, so they go to SetupWizard
+            store.setLoadedData({
+              user: { name: userName, email, uid: user.uid },
+              semesters: [],
+              courses: [],
+              classSessions: [],
+              assignments: [],
+              exams: [],
+              devotionalTimes: [],
+              studyBreaks: [],
+              readings: [],
+            });
+          }
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'An unexpected error occurred.');
     }
   };
 

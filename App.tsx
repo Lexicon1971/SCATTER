@@ -39,7 +39,7 @@ export default function App() {
       try {
         const doc = (globalThis as any).document;
         if (doc) {
-          doc.title = "SCATTER - Seminary Tracker v2.0";
+          doc.title = "SCATTER - Seminary Tracker v3.0";
 
           // Remove any existing favicon links to prevent duplicate icon requests/errors
           const existingIcons = doc.querySelectorAll("link[rel*='icon']");
